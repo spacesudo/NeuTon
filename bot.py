@@ -24,7 +24,8 @@ from telebot.util import antiflood
 import time
 import json
 import asyncio
-
+from dotenv import load_dotenv
+import os
 """
 Initialising database
 """
@@ -34,9 +35,9 @@ db_trade = Trade()
 db_user.setup()
 db_trade.setup()
 
+TOKEN = os.getenv('TOKEN')
 
-
-bot = telebot.TeleBot('7172464985:AAHxMQibo-CxbbUgmLHv7EHcPWylnf_skgc')
+bot = telebot.TeleBot(TOKEN)
 
 
 def sell(message, addr, amount):

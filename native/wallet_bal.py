@@ -3,12 +3,13 @@ from genwallet import import_wallet
 #from mnemonics import mnemonics
 from TonTools import *
 
-api_key = "AEWQYU5YMJ4JHWYAAAAOUQ5HX3HGCMDUL227AL6ZPYKC6JXR6JREEGRZ5AJWNAX6GLGO5MI"
+#api_key = "AEWQYU5YMJ4JHWYAAAAOUQ5HX3HGCMDUL227AL6ZPYKC6JXR6JREEGRZ5AJWNAX6GLGO5MI"
 # jetton address
 JETTON_MASTER = 'EQBl3gg6AAdjgjO2ZoNU5Q5EzUIl8XMNZrix8Z5dJmkHUfxI'
 
 async def jetton_bal(jetton_addr, owner_addr):
-    client = TonApiClient(key=api_key)
+    #client = TonApiClient(key=api_key)
+    client = TonCenterClient(orbs_access=True)
     try:
         jetton_wallet = await Jetton(jetton_addr, client).get_jetton_wallet(owner_address= owner_addr)
         await jetton_wallet.update()
@@ -31,5 +32,5 @@ async def ton_bal(mnemonics):
     return baln
 
 if __name__ == '__main__':
-    print(asyncio.run(jetton_bal('EQBlqsm144Dq6SjbPI4jjZvA1hqTIP3CvHovbIfW_t-SCALE', 'UQDLzebYWhJaIt5YbZ5vz_glIbfqP7PxNg9V54HW3jSIhDPe')))
+    print(asyncio.run(jetton_bal('EQBl3gg6AAdjgjO2ZoNU5Q5EzUIl8XMNZrix8Z5dJmkHUfxI', 'UQDLzebYWhJaIt5YbZ5vz_glIbfqP7PxNg9V54HW3jSIhDPe')))
     #asyncio.run(ton_bal())

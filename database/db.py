@@ -193,16 +193,16 @@ class UserData:
 
     def setup(self):
         statement1 = """CREATE TABLE IF NOT EXISTS userdata (id INTEGER PRIMARY KEY, chatid INTEGER UNIQUE,
-                            wallet TEXT UNIQUE, referrals INTEGER DEFAULT 0,
+                            wallet TEXT UNIQUE, referrer INTEGER, referrals INTEGER DEFAULT 0,
                             referrals_vol FLOAT DEFAULT 0.0, trading_vol FLOAT DEFAULT 0.0 )"""
                             
         self.conn.execute(statement1)
         self.conn.commit()
 
 
-    def add_user(self, username_, wallet):
-        statement = "INSERT OR IGNORE INTO userdata (chatid, wallet) VALUES (?, ?)"
-        args = (username_, wallet)
+    def add_user(self, username_, wallet, referrer):
+        statement = "INSERT OR IGNORE INTO userdata (chatid, wallet, referrer) VALUES (?, ?, ?)"
+        args = (username_, wallet,referrer)
         self.conn.execute(statement, args)
         self.conn.commit()
         
@@ -260,3 +260,19 @@ class UserData:
         if result:
             return result[0]
         return None
+    
+    
+    def get_referrer(self, owner):
+        statement = "SELECT referrer FROM userdata WHERE chatid = ?"
+        args = (owner,)
+        cursor = self.conn.execute(statement, args)
+        result = cursor.fetchone()
+        if result:
+            return result[0]
+        return None
+    
+    
+    def get_users(self):
+        statement = "SELECT chatid, wallet, referrer, referrals, referrals_vol, trading_vol FROM userdata"
+        return [x for x in self.conn.execute(statement)]
+    

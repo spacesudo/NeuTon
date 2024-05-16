@@ -6,8 +6,6 @@ db = UserData()
 
 db.setup()
 
-#db.add_user(121212, "fhfhfhf")
+db.add_user(2321, "wywww", 1111)
 
-print(db.get_trading_vol(121212))
-db.update_trading_vol(50,121212)
-print(db.get_trading_vol(121212))
+print(db.get_users())

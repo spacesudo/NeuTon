@@ -1,7 +1,7 @@
 __pycache__
 *.json
 *.txt
-*.env
+.env
 *.sqlite
 .vs
 tonbot

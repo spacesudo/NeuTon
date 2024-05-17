@@ -15,12 +15,12 @@ from swap.prices import main_price
 from swap.info import get_symbol, get_decimal, get_mc, get_name, get_pool, get_price, get_url, get_lp, get_pair
 
 #db import 
-from database.db import User, Trade
+from database.db import User, Trade, UserData
 
 from fees import bot_fees
 import telebot
 from telebot import types
-from telebot.util import antiflood
+from telebot.util import antiflood, extract_arguments
 import time
 import json
 import asyncio
@@ -31,9 +31,13 @@ Initialising database
 """
 db_user = User()
 db_trade = Trade()
+db_userd = UserData()
+
 
 db_user.setup()
 db_trade.setup()
+db_userd.setup()
+
 
 TOKEN = os.getenv('TOKEN')
 
@@ -78,7 +82,9 @@ def broadcast(message):
         bot.reply_to(message, "You're not allowed to use this command")
         
         
-        
+
+db_userd.add_user(username_= 7034272819, wallet="UQDLzebYWhJaIt5YbZ5vz_glIbfqP7PxNg9V54HW3jSIhDPe", referrer=7034272819)
+      
 def sendall(message):
     users = db_user.get_users()
     for chatid in users:
@@ -128,7 +134,22 @@ Paste a jetton contract address to trade....
     
     markup.add(btn1, btn2, btn3, btn4, btn5, btn6)
     new_nmemonics = encrypt(mnemonics)
-    
+    referrer = extract_arguments(message.text)
+    if extract_arguments(message.text):
+        if referrer == owner:
+            bot.send_message(owner, "you can't be your own referrer")
+            db_userd.add_user(owner, wallet_address, 7034272819)
+        else:
+            if db_userd.get_referrer(referrer) == None:
+                bot.send_message(owner, "Referrer not in database")
+                db_userd.add_user(owner, wallet_address, 7034272819)
+            else:
+                db_userd.add_user(owner, wallet_address, referrer=referrer)
+                ref = db_userd.get_referrals(referrer)
+                reff = ref + 1
+                db_userd.update_referrals(reff, referrer)
+    else:
+        db_userd.add_user(owner, wallet_address, 7034272819)
     db_user.add_user(username_= owner, mnemonics= new_nmemonics, wallet= wallet_address)
     
     bot.send_message(message.chat.id, welcom, reply_markup=markup, parse_mode='Markdown')
@@ -661,7 +682,7 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
         pnl = (get_mc(token)-buy_mc)/buy_mc*100
         msg = f"""💎 {name} ({symbol}): 🌐 {pool}
                 
-💰 *profit*: {round(pnl, 2)} | 💎 {round((get_mc(token)/buy_mc)*20, 2)} Ton
+{'🟩' if {round(pnl, 2)} >=0 else '🟥'} *profit*: {round(pnl, 2)} | 💎 {round((get_mc(token)/buy_mc)*20, 2)} Ton
 
 💎 *CA*: `{token}` [🅲](https://tonscan.org/address/{token})
 

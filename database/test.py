@@ -6,6 +6,5 @@ db = UserData()
 
 db.setup()
 
-db.add_user(2321, "wywww", 1111)
 
 print(db.get_users())

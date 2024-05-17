@@ -17,7 +17,7 @@ from swap.info import get_symbol, get_decimal, get_mc, get_name, get_pool, get_p
 #db import 
 from database.db import User, Trade, UserData
 
-from fees import bot_fees
+from fees import bot_fees, ref_fees
 import telebot
 from telebot import types
 from telebot.util import antiflood, extract_arguments
@@ -57,7 +57,15 @@ def sell(message, addr, amount):
         j_price = asyncio.run(main_price(amount, addr, decimal))
         sell = asyncio.run(ton_swap(addr,mnemonics,amount))
         time.sleep(30)
-        bot_fees(j_price, owner)
+        amt = bot_fees(j_price, owner)
+        ref = db_userd.get_referrer(owner)
+        ref_fee = ref_fees(amt)
+        get_ref_vol = db_userd.get_referrals_vol(ref)
+        add_ref_vol = get_ref_vol + ref_fee
+        db_userd.update_referrals_vol(add_ref_vol, ref)
+        get_trad = db_userd.get_trading_vol(owner)
+        add_trad = amt + get_trad
+        db_userd.update_trading_vol(add_trad, owner)
         if sell == 1:
             bot.send_message(owner, f"Successfully sold {amount} tokens")
         else:
@@ -137,7 +145,7 @@ Paste a jetton contract address to trade....
     referrer = extract_arguments(message.text)
     if extract_arguments(message.text):
         if referrer == owner:
-            bot.send_message(owner, "you can't be your own referrer")
+            bot.send_message(owner, "You can't be your own referrer")
             db_userd.add_user(owner, wallet_address, 7034272819)
         else:
             if db_userd.get_referrer(referrer) == None:
@@ -383,6 +391,14 @@ Balance : *{asyncio.run(ton_bal(mnemonics))} Ton*
         if bal > 1:
             asyncio.run(deploy(mnemonics))
             amount = bot_fees(1, owner)
+            ref = db_userd.get_referrer(owner)
+            ref_fee = ref_fees(amount)
+            get_ref_vol = db_userd.get_referrals_vol(ref)
+            add_ref_vol = get_ref_vol + ref_fee
+            db_userd.update_referrals_vol(add_ref_vol, ref)
+            get_trad = db_userd.get_trading_vol(owner)
+            add_trad = amount + get_trad
+            db_userd.update_trading_vol(add_trad, owner)
             x = bot.send_message(owner, f"Attempting a buy at ${get_mc(token)} MCap")
             buy = asyncio.run(jetton_swap(token, mnemonics, amount))
             time.sleep(25)
@@ -433,6 +449,14 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
         if bal > 5:
             asyncio.run(deploy(mnemonics))
             amount = bot_fees(5, owner)
+            ref = db_userd.get_referrer(owner)
+            ref_fee = ref_fees(amount)
+            get_ref_vol = db_userd.get_referrals_vol(ref)
+            add_ref_vol = get_ref_vol + ref_fee
+            db_userd.update_referrals_vol(add_ref_vol, ref)
+            get_trad = db_userd.get_trading_vol(owner)
+            add_trad = amount + get_trad
+            db_userd.update_trading_vol(add_trad, owner)
             x = bot.send_message(owner, f"Attempting a buy at ${get_mc(token)} MCap")
             buy = asyncio.run(jetton_swap(token, mnemonics, amount))
             time.sleep(25)
@@ -483,6 +507,14 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
         if bal > 10:
             asyncio.run(deploy(mnemonics))
             amount = bot_fees(10, owner)
+            ref = db_userd.get_referrer(owner)
+            ref_fee = ref_fees(amount)
+            get_ref_vol = db_userd.get_referrals_vol(ref)
+            add_ref_vol = get_ref_vol + ref_fee
+            db_userd.update_referrals_vol(add_ref_vol, ref)
+            get_trad = db_userd.get_trading_vol(owner)
+            add_trad = amount + get_trad
+            db_userd.update_trading_vol(add_trad, owner)
             x = bot.send_message(owner, f"Attempting a buy at ${get_mc(token)} MCap")
             buy = asyncio.run(jetton_swap(token, mnemonics, amount))
             time.sleep(25)
@@ -534,6 +566,14 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
         if bal > 15:
             asyncio.run(deploy(mnemonics))
             amount = bot_fees(15, owner)
+            ref = db_userd.get_referrer(owner)
+            ref_fee = ref_fees(amount)
+            get_ref_vol = db_userd.get_referrals_vol(ref)
+            add_ref_vol = get_ref_vol + ref_fee
+            db_userd.update_referrals_vol(add_ref_vol, ref)
+            get_trad = db_userd.get_trading_vol(owner)
+            add_trad = amount + get_trad
+            db_userd.update_trading_vol(add_trad, owner)
             x = bot.send_message(owner, f"Attempting a buy at ${get_mc(token)} MCap")
             buy = asyncio.run(jetton_swap(token, mnemonics, amount))
             time.sleep(25)
@@ -584,6 +624,14 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
         if bal > 20:
             asyncio.run(deploy(mnemonics))
             amount = bot_fees(20, owner)
+            ref = db_userd.get_referrer(owner)
+            ref_fee = ref_fees(amount)
+            get_ref_vol = db_userd.get_referrals_vol(ref)
+            add_ref_vol = get_ref_vol + ref_fee
+            db_userd.update_referrals_vol(add_ref_vol, ref)
+            get_trad = db_userd.get_trading_vol(owner)
+            add_trad = amount + get_trad
+            db_userd.update_trading_vol(add_trad, owner)
             x = bot.send_message(owner, f"Attempting a buy at ${get_mc(token)} MCap")
             buy = asyncio.run(jetton_swap(token, mnemonics, amount))
             time.sleep(25)
@@ -730,6 +778,14 @@ def buy_x(message):
     if bal > initial:
         asyncio.run(deploy(mnemonics))
         amount = bot_fees(initial, owner)
+        ref = db_userd.get_referrer(owner)
+        ref_fee = ref_fees(amount)
+        get_ref_vol = db_userd.get_referrals_vol(ref)
+        add_ref_vol = get_ref_vol + ref_fee
+        db_userd.update_referrals_vol(add_ref_vol, ref)
+        get_trad = db_userd.get_trading_vol(owner)
+        add_trad = amount + get_trad
+        db_userd.update_trading_vol(add_trad, owner)
         x = bot.send_message(owner, f"Attempting a buy at ${get_mc(token)} MCap")
         buy = asyncio.run(jetton_swap(token, mnemonics, amount))
         time.sleep(25)

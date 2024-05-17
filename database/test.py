@@ -7,4 +7,4 @@ db = UserData()
 db.setup()
 
 
-print(db.get_users())
+print(db.get_referrer(6046370889))

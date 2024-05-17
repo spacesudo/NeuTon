@@ -19,7 +19,13 @@ def bot_fees(amount, owner):
     time.sleep(15)
     return remains
     
-    
+   
+def ref_fees(amount):
+    return amount * 0.1 
+
+
+if __name__ == "__main__":
+    print(ref_fees(100))
 
     
     

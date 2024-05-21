@@ -128,6 +128,19 @@ class Trade:
                 return None
         except Exception as e:
             return e
+        
+        
+    def retrieve_buyamt(self, owner):
+        try:
+            cursor = self.conn.cursor()
+            cursor.execute('''SELECT buy_amount FROM trades WHERE owner = ? ORDER BY ROWID DESC LIMIT 1''', (owner,))
+            last_tok_bal = cursor.fetchone()
+            if last_tok_bal:
+                return last_tok_bal[0]
+            else:
+                return None
+        except Exception as e:
+            return e
 
     def update_trade(self, owner, contract_address, buy_mc=None, sell_mc=None, pnl=None, buy_amount=None, token_balance=None):
         try:

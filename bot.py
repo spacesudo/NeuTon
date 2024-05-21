@@ -407,7 +407,8 @@ Balance : *{asyncio.run(ton_bal(mnemonics))} Ton*
                 bot.send_message(owner, f"Bought {get_name(token)} at {get_mc(token)}")
                 buy_mc = get_mc(token)
                 pnl = (get_mc(token)-buy_mc)/buy_mc*100
-                db_trade.update_trade(owner, token, buy_mc)
+                amt = 1
+                db_trade.update_trade(owner, token, buy_mc, buy_amount=amt)
                 msg = f"""💎 {name} ({symbol}): 🌐 {pool}
                 
 💰 *profit*: {round(pnl, 2)} | 💎 {round((get_mc(token)/buy_mc)*1, 2)} Ton
@@ -465,7 +466,8 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
                 bot.send_message(owner, f"Bought {get_name(token)} at {get_mc(token)}")
                 buy_mc = get_mc(token)
                 pnl = (get_mc(token)-buy_mc)/buy_mc*100
-                db_trade.update_trade(owner, token, buy_mc)
+                amt = 5
+                db_trade.update_trade(owner, token, buy_mc, buy_amount=amt)
                 msg = f"""💎 {name} ({symbol}): 🌐 {pool}
                 
 💰 *profit*: {round(pnl, 2)} | 💎 {round((get_mc(token)/buy_mc)*5, 2)} Ton
@@ -523,7 +525,8 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
                 bot.send_message(owner, f"Bought {get_name(token)} at {get_mc(token)}")
                 buy_mc = get_mc(token)
                 pnl = (get_mc(token)-buy_mc)/buy_mc*100
-                db_trade.update_trade(owner, token, buy_mc)
+                amt = 10
+                db_trade.update_trade(owner, token, buy_mc, buy_amount=amt)
                 msg = f"""💎 {name} ({symbol}): 🌐 {pool}
                 
 💰 *profit*: {round(pnl, 2)} | 💎 {round((get_mc(token)/buy_mc)*10, 2)} Ton
@@ -582,7 +585,8 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
                 bot.send_message(owner, f"Bought {get_name(token)} at {get_mc(token)}")
                 buy_mc = get_mc(token)
                 pnl = (get_mc(token)-buy_mc)/buy_mc*100
-                db_trade.update_trade(owner, token, buy_mc)
+                amt = 15
+                db_trade.update_trade(owner, token, buy_mc, buy_amount=amt)
                 msg = f"""💎 {name} ({symbol}): 🌐 {pool}
                 
 💰 *profit*: {round(pnl, 2)} | 💎 {round((get_mc(token)/buy_mc)*15, 2)} Ton
@@ -640,7 +644,8 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
                 bot.send_message(owner, f"Bought {get_name(token)} at {get_mc(token)}")
                 buy_mc = get_mc(token)
                 pnl = (get_mc(token)-buy_mc)/buy_mc*100
-                db_trade.update_trade(owner, token, buy_mc)
+                amt = 20
+                db_trade.update_trade(owner, token, buy_mc, buy_amount=amt)
                 msg = f"""💎 {name} ({symbol}): 🌐 {pool}
                 
 💰 *profit*: {round(pnl, 2)} | 💎 {round((get_mc(token)/buy_mc)*20, 2)} Ton
@@ -728,9 +733,10 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
         sell(call.message, token, amount)
         buy_mc = db_trade.retrieve_last_buycap(owner)
         pnl = (get_mc(token)-buy_mc)/buy_mc*100
+        amt = 0 if db_trade.retrieve_buyamt(owner=owner) == None else db_trade.retrieve_buyamt(owner=owner)
         msg = f"""💎 {name} ({symbol}): 🌐 {pool}
                 
-{'🟩' if {round(pnl, 2)} >=0 else '🟥'} *profit*: {round(pnl, 2)} | 💎 {round((get_mc(token)/buy_mc)*20, 2)} Ton
+{'🟩' if {round(pnl, 2)} >=0 else '🟥'} *profit*: {round(pnl, 2)} | 💎 {round((get_mc(token)/buy_mc)*amt, 2)} Ton
 
 💎 *CA*: `{token}` [🅲](https://tonscan.org/address/{token})
 
@@ -756,7 +762,90 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
         btn7 = types.InlineKeyboardButton("Refresh", callback_data='sellrefresh')
         markup.add(btn1,btn2,btn3,btn4,btn5,btn6,btn7)
         bot.edit_message_text(chat_id=call.message.chat.id, disable_web_page_preview=True ,message_id=call.message.message_id, text= msg, parse_mode='Markdown', reply_markup=markup)
+        
+        
+    
+    elif call.data == 'sell50':
+        token_bal = asyncio.run(jetton_bal(token, wallet))
+        
+        amount = token_bal * 0.5
+        sell(call.message, token, amount)
+        buy_mc = db_trade.retrieve_last_buycap(owner)
+        pnl = (get_mc(token)-buy_mc)/buy_mc*100
+        amt = 0 if db_trade.retrieve_buyamt(owner=owner) == None else db_trade.retrieve_buyamt(owner=owner)
+        msg = f"""💎 {name} ({symbol}): 🌐 {pool}
                 
+{'🟩' if {round(pnl, 2)} >=0 else '🟥'} *profit*: {round(pnl, 2)} | 💎 {round((get_mc(token)/buy_mc)*amt, 2)} Ton
+
+💎 *CA*: `{token}` [🅲](https://tonscan.org/address/{token})
+
+💦 *LP*: `{pair}`
+
+📈 *MCap*: {get_mc(token)} *USD* |💵 ${get_price(token)}
+
+💦 * Liquidity*: {lp} TON
+
+*Balance*: 
+{name}: {asyncio.run(jetton_bal(token, wallet))}
+Ton: {asyncio.run(ton_bal(mnemonics))}
+                
+                
+        """
+        markup = types.InlineKeyboardMarkup()
+        btn1 = types.InlineKeyboardButton("Buy ", callback_data='buy')
+        btn2 = types.InlineKeyboardButton("Sell 25%", callback_data='sell25')
+        btn3 = types.InlineKeyboardButton("Sell 50%", callback_data='sell50')
+        btn4 = types.InlineKeyboardButton("Sell 75%", callback_data='sell75')
+        btn5 = types.InlineKeyboardButton("Sell 100% ", callback_data='sell100')
+        btn6 = types.InlineKeyboardButton("Sell X token ", callback_data='sellx')
+        btn7 = types.InlineKeyboardButton("Refresh", callback_data='sellrefresh')
+        markup.add(btn1,btn2,btn3,btn4,btn5,btn6,btn7)
+        bot.edit_message_text(chat_id=call.message.chat.id, disable_web_page_preview=True ,message_id=call.message.message_id, text= msg, parse_mode='Markdown', reply_markup=markup)
+
+        
+    elif call.data == 'sell75':
+        token_bal = asyncio.run(jetton_bal(token, wallet))
+        
+        amount = token_bal * 0.75
+        sell(call.message, token, amount)
+        buy_mc = db_trade.retrieve_last_buycap(owner)
+        pnl = (get_mc(token)-buy_mc)/buy_mc*100
+        amt = 0 if db_trade.retrieve_buyamt(owner=owner) == None else db_trade.retrieve_buyamt(owner=owner)
+        msg = f"""💎 {name} ({symbol}): 🌐 {pool}
+                
+{'🟩' if {round(pnl, 2)} >=0 else '🟥'} *profit*: {round(pnl, 2)} | 💎 {round((get_mc(token)/buy_mc)*amt, 2)} Ton
+
+💎 *CA*: `{token}` [🅲](https://tonscan.org/address/{token})
+
+💦 *LP*: `{pair}`
+
+📈 *MCap*: {get_mc(token)} *USD* |💵 ${get_price(token)}
+
+💦 * Liquidity*: {lp} TON
+
+*Balance*: 
+{name}: {asyncio.run(jetton_bal(token, wallet))}
+Ton: {asyncio.run(ton_bal(mnemonics))}
+                
+                
+        """
+        markup = types.InlineKeyboardMarkup()
+        btn1 = types.InlineKeyboardButton("Buy ", callback_data='buy')
+        btn2 = types.InlineKeyboardButton("Sell 25%", callback_data='sell25')
+        btn3 = types.InlineKeyboardButton("Sell 50%", callback_data='sell50')
+        btn4 = types.InlineKeyboardButton("Sell 75%", callback_data='sell75')
+        btn5 = types.InlineKeyboardButton("Sell 100% ", callback_data='sell100')
+        btn6 = types.InlineKeyboardButton("Sell X token ", callback_data='sellx')
+        btn7 = types.InlineKeyboardButton("Refresh", callback_data='sellrefresh')
+        markup.add(btn1,btn2,btn3,btn4,btn5,btn6,btn7)
+        bot.edit_message_text(chat_id=call.message.chat.id, disable_web_page_preview=True ,message_id=call.message.message_id, text= msg, parse_mode='Markdown', reply_markup=markup)
+        
+        
+    elif call.data == 'sell100':
+        token_bal = asyncio.run(jetton_bal(token, wallet))
+        
+        amount = token_bal * 1
+        sell(call.message, token, amount)
         
         
 def buy_x(message):
@@ -794,7 +883,8 @@ def buy_x(message):
             bot.send_message(owner, f"Bought {get_name(token)} at {get_mc(token)}")
             buy_mc = get_mc(token)
             pnl = (get_mc(token)-buy_mc)/buy_mc*100
-            db_trade.update_trade(owner, token, buy_mc)
+            amt = initial
+            db_trade.update_trade(owner, token, buy_mc, buy_amount=amt)
             msg = f"""💎 {name} ({symbol}): 🌐 {pool}
                 
 💰 *profit*: {round(pnl, 2)} | 💎 {round((get_mc(token)/buy_mc)*initial, 2)} Ton

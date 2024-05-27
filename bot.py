@@ -15,7 +15,9 @@ from swap.prices import main_price
 from swap.info import get_symbol, get_decimal, get_mc, get_name, get_pool, get_price, get_url, get_lp, get_pair
 
 #db import 
-from database.db import User, Trade, UserData
+from database.db import User, Trade, UserData, Bridge
+
+from bridge.bridge import exchange, minimum, exchange_status, output
 
 from fees import bot_fees, ref_fees
 import telebot
@@ -32,7 +34,7 @@ Initialising database
 db_user = User()
 db_trade = Trade()
 db_userd = UserData()
-
+db_bridge = Bridge()
 
 db_user.setup()
 db_trade.setup()
@@ -51,8 +53,9 @@ def sell(message, addr, amount):
     j_bal = asyncio.run(jetton_bal(addr, wallet))
     t_bal = asyncio.run(ton_bal(mnemonics))
     if j_bal >= amount and t_bal > 0.5:
-        x  = bot.send_message(owner, f"Attempting a buy at ${get_mc(addr)} MCap")
-        dec = asyncio.run(update(addr)['decimals'])
+        x  = bot.send_message(owner, f"Attempting a sell at ${get_mc(addr):,} MCap")
+        dec1 = asyncio.run(update(addr))
+        dec = dec1['decimals']
         decimal = 10**dec
         j_price = asyncio.run(main_price(amount, addr, decimal))
         sell = asyncio.run(ton_swap(addr,mnemonics,amount))
@@ -136,11 +139,12 @@ Paste a jetton contract address to trade....
     btn2 = types.InlineKeyboardButton(f"{asyncio.run(ton_bal(mnemonics))} Ton", callback_data='us')
     btn3 = types.InlineKeyboardButton("Wallet", callback_data='wallett')
     btn4 = types.InlineKeyboardButton("Positions", callback_data="position")
+    btn7 = types.InlineKeyboardButton("Bridge", callback_data='bridge')
     btn5 = types.InlineKeyboardButton("Support Community", url="https://t.me/zerohexdave")
     btn6 = types.InlineKeyboardButton("Bot Manual", url="https://t.me/zerohexdave")
     #btn6 = types.InlineKeyboardButton("Close ", callback_data="cancel")
     
-    markup.add(btn1, btn2, btn3, btn4, btn5, btn6)
+    markup.add(btn1, btn2, btn3, btn4,btn7, btn5, btn6)
     new_nmemonics = encrypt(mnemonics)
     referrer = extract_arguments(message.text)
     if extract_arguments(message.text):
@@ -846,7 +850,89 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
         
         amount = token_bal * 1
         sell(call.message, token, amount)
+        time.sleep(10)
+        bot.delete_message(owner, call.message.message_id)
         
+        
+        
+    elif call.data == 'bridge':
+        bot.delete_message(owner, call.message.message_id)
+        markup = types.InlineKeyboardMarkup(row_width=1)
+        btn1 = types.InlineKeyboardButton('Ton to others', callback_data='tonbridge')
+        btn2 = types.InlineKeyboardButton('ETH --> TON', callback_data='ethton')
+        btn3 = types.InlineKeyboardButton('SOL --> TON', callback_data='solton')
+        btn4 = types.InlineKeyboardButton('BASE --> TON', callback_data='baseton')
+        btn5 = types.InlineKeyboardButton('BTC --> TON', callback_data='btcton')
+        btn6 = types.InlineKeyboardButton('BNB --> TON', callback_data='bnbton')
+        btn7 = types.InlineKeyboardButton('USDT(ERC20) --> TON', callback_data='ercton')
+        btn8 = types.InlineKeyboardButton('USDT(TRC20) --> TON', callback_data='trcton')
+        btn9 = types.InlineKeyboardButton('Cancel', callback_data='cancel')
+        
+        msg = """
+        Bridge from one network to Ton using the built in Bridge Mode
+        
+Select the chain you're bridging from and follow the prompt after
+
+Tap on *Ton to others* To bridge from Ton to other chains         
+
+        """
+        
+        markup.add(btn1, btn2,btn3,btn4,btn5,btn6,btn7,btn8,btn9)
+        
+        bot.send_message(owner, msg, 'Markdown', reply_markup=markup)
+        
+        
+    elif call.data == 'ethton':
+        min = minimum('eth','eth','ton','ton')['minAmount']
+        msg = f"You're Swaping from ETH to TON\n Minimum amount to swap is {min}\n Enter swap amount below:"
+        db_bridge.add_user(owner)
+        s = bot.send_message(owner, msg)
+        bot.register_next_step_handler(s, etht1)
+        
+        
+        
+    elif call.data == 'tonbridge':
+        bot.delete_message(owner, call.message.message_id)
+        markup = types.InlineKeyboardMarkup(row_width=1)
+        btn1 = types.InlineKeyboardButton('Bridge to Ton', callback_data='bridge')
+        btn2 = types.InlineKeyboardButton('TON --> ETH', callback_data='toneth')
+        btn3 = types.InlineKeyboardButton('TON --> SOL', callback_data='tonsol')
+        btn4 = types.InlineKeyboardButton('TON --> BASE', callback_data='tonbase')
+        btn5 = types.InlineKeyboardButton('TON --> BTC', callback_data='tonbtc')
+        btn6 = types.InlineKeyboardButton('TON --> BNB', callback_data='tonbnb')
+        btn7 = types.InlineKeyboardButton('TON --> USDT(ERC20)', callback_data='tonerc')
+        btn8 = types.InlineKeyboardButton('TON --> USDT(TRC20)', callback_data='tontrc')
+        btn9 = types.InlineKeyboardButton('Cancel', callback_data='cancel')
+        
+        msg = """
+        Bridge from one network to Ton using the built in Bridge Mode
+        
+Select the chain you're bridging from and follow the prompt after
+
+Tap on *Bridge to Ton* To bridge from Ton to other chains         
+
+        """
+        
+        markup.add(btn1, btn2,btn3,btn4,btn5,btn6,btn7,btn8,btn9)
+        
+        bot.send_message(owner, msg, 'Markdown', reply_markup=markup)
+        
+        
+
+def etht1(message):
+    owner = message.chat.id
+    try:
+        initial = float(message.text)
+        db_bridge.update_amount(initial, owner)
+    except Exception as e:
+        bot.send_message(message.chat.id, "Message should be a number ")
+    
+    markup = types.InlineKeyboardMarkup()
+    btn = types.InlineKeyboardButton('Confirm Bridge ', callback_data='confirm')
+    msg = f"""You're about to swap {initial}ETH to {0}Ton
+    
+    """
+
         
 def buy_x(message):
     try:

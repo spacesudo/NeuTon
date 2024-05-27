@@ -3,7 +3,7 @@ import asyncio
 from TonTools import *
 
 # jetton address
-JETTON_MASTER = 'EQDb56PQSfdBgF3DR6fY_lTr5lmHr4LnWX7GolyJ0BDLRhBa'
+JETTON_MASTER = 'EQBl3gg6AAdjgjO2ZoNU5Q5EzUIl8XMNZrix8Z5dJmkHUfxI'
 
 async def update(jetton_addr: str):
     client = TonCenterClient(orbs_access=True)

@@ -52,7 +52,7 @@ def minimum(from_curr, from_net, to_net , to_curr):
   return response.json()
 
 
-def tx_id(tx_id):
+def exchange_status(tx_id):
   url = f"https://api.changenow.io/v2/exchange/by-id?id={tx_id}"
 
   payload={}
@@ -62,3 +62,22 @@ def tx_id(tx_id):
 
   response = requests.request("GET", url, headers=headers, data=payload)
   return response.json()
+
+def output(from_curr,from_net, to_net , to_curr, amount):
+    url = f"https://api.changenow.io/v2/exchange/estimated-amount?fromCurrency={from_curr}&toCurrency={to_curr}&fromAmount={amount}&toAmount=&fromNetwork={from_net}&toNetwork={to_net}&flow=fixed-rate&type=&useRateId=true"
+
+    payload={}
+    headers = {
+      'x-changenow-api-key': KEY
+    }
+
+    response = requests.request("GET", url, headers=headers, data=payload)
+
+    return response.json()
+
+
+
+
+
+if __name__ == "__main__":
+  print(output('sol','sol', 'eth','usdt','0.1'))

@@ -49,7 +49,7 @@ def minimum(from_curr, from_net, to_net , to_curr):
   }
 
   response = requests.request("GET", url, headers=headers, data=payload)
-  return response.json()
+  return response.json()['minAmount']
 
 
 def exchange_status(tx_id):
@@ -73,11 +73,13 @@ def output(from_curr,from_net, to_net , to_curr, amount):
 
     response = requests.request("GET", url, headers=headers, data=payload)
 
-    return response.json()
+    return response.json()['toAmount']
 
 
 
 
 
 if __name__ == "__main__":
-  print(output('sol','sol', 'eth','usdt','0.1'))
+  x = exchange('usdt','trx','ton','ton',1,"UQDLzebYWhJaIt5YbZ5vz_glIbfqP7PxNg9V54HW3jSIhDPe")
+  print(x)
+  

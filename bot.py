@@ -883,12 +883,227 @@ Tap on *Ton to others* To bridge from Ton to other chains
         
         
     elif call.data == 'ethton':
-        min = minimum('eth','eth','ton','ton')['minAmount']
+        min = minimum('eth','eth','ton','ton')
         msg = f"You're Swaping from ETH to TON\n Minimum amount to swap is {min}\n Enter swap amount below:"
         db_bridge.add_user(owner)
         s = bot.send_message(owner, msg)
         bot.register_next_step_handler(s, etht1)
         
+        
+    elif call.data == "confirm":
+        amt = db_bridge.get_amount(owner)
+        exc = exchange('eth','eth','ton','ton',amt,wallet)
+        payin = exc['payinAddress']
+        toamt = exc['toAmount']
+        msg = f"""Bridging From Eth to Ton
+        
+Pay-in Address: `{payin}`
+
+Pay-out Wallet: `{wallet}`
+
+Amount-In: *{amt}*
+
+Amount-Out: *{toamt}*
+
+Send the amount and bridge will be completed automatically
+        """
+        markup = types.InlineKeyboardMarkup()
+        btn = types.InlineKeyboardButton('Cancel', callback_data='cancel')
+        markup.add(btn)
+        bot.send_message(owner, msg, 'Markdown', reply_markup=markup)
+        db_bridge.del_user(owner)  
+        
+        
+    elif call.data == 'solton':
+        min = minimum('sol','sol','ton','ton')
+        msg = f"You're Swaping from SOL to TON\n Minimum amount to swap is {min}\n Enter swap amount below:"
+        db_bridge.add_user(owner)
+        s = bot.send_message(owner, msg)
+        bot.register_next_step_handler(s, sol1)
+        
+        
+    elif call.data == "confirm1":
+        amt = db_bridge.get_amount(owner)
+        exc = exchange('sol','sol','ton','ton',amt,wallet)
+        payin = exc['payinAddress']
+        toamt = exc['toAmount']
+        msg = f"""Bridging From Sol to Ton
+        
+Pay-in Address: `{payin}`
+
+Pay-out Wallet: `{wallet}`
+
+Amount-In: *{amt}*
+
+Amount-Out: *{toamt}*
+
+Send the amount and bridge will be completed automatically
+        """
+        markup = types.InlineKeyboardMarkup()
+        btn = types.InlineKeyboardButton('Cancel', callback_data='cancel')
+        markup.add(btn)
+        bot.send_message(owner, msg, 'Markdown', reply_markup=markup)
+        db_bridge.del_user(owner)
+        
+        
+    elif call.data == 'baseton':
+        min = minimum('eth','base','ton','ton')
+        msg = f"You're Swaping from BASE to TON\n Minimum amount to swap is {min}\n Enter swap amount below:"
+        db_bridge.add_user(owner)
+        s = bot.send_message(owner, msg)
+        bot.register_next_step_handler(s, base1)
+        
+        
+    elif call.data == "confirm2":
+        amt = db_bridge.get_amount(owner)
+        exc = exchange('eth','base','ton','ton',amt,wallet)
+        payin = exc['payinAddress']
+        toamt = exc['toAmount']
+        msg = f"""Bridging From Base to Ton
+        
+Pay-in Address: `{payin}`
+
+Pay-out Wallet: `{wallet}`
+
+Amount-In: *{amt}*
+
+Amount-Out: *{toamt}*
+
+Send the amount and bridge will be completed automatically
+        """
+        markup = types.InlineKeyboardMarkup()
+        btn = types.InlineKeyboardButton('Cancel', callback_data='cancel')
+        markup.add(btn)
+        bot.send_message(owner, msg, 'Markdown', reply_markup=markup)
+        db_bridge.del_user(owner)
+        
+        
+    elif call.data == 'btcton':
+        min = minimum('btc','btc','ton','ton')
+        msg = f"You're Swaping from BTC to TON\n Minimum amount to swap is {min}\n Enter swap amount below:"
+        db_bridge.add_user(owner)
+        s = bot.send_message(owner, msg)
+        bot.register_next_step_handler(s, btc1)
+        
+        
+    elif call.data == "confirm3":
+        amt = db_bridge.get_amount(owner)
+        exc = exchange('btc','btc','ton','ton',amt,wallet)
+        payin = exc['payinAddress']
+        toamt = exc['toAmount']
+        msg = f"""Bridging From BTC to Ton
+        
+Pay-in Address: `{payin}`
+
+Pay-out Wallet: `{wallet}`
+
+Amount-In: *{amt}*
+
+Amount-Out: *{toamt}*
+
+Send the amount and bridge will be completed automatically
+        """
+        markup = types.InlineKeyboardMarkup()
+        btn = types.InlineKeyboardButton('Cancel', callback_data='cancel')
+        markup.add(btn)
+        bot.send_message(owner, msg, 'Markdown', reply_markup=markup)
+        db_bridge.del_user(owner)
+        
+        
+    elif call.data == 'bnbton':
+        min = minimum('bnb','bsc','ton','ton')
+        msg = f"You're Swaping from BNB to TON\n Minimum amount to swap is {min}\n Enter swap amount below:"
+        db_bridge.add_user(owner)
+        s = bot.send_message(owner, msg)
+        bot.register_next_step_handler(s, bnb1)
+        
+        
+    elif call.data == "confirm4":
+        amt = db_bridge.get_amount(owner)
+        exc = exchange('bnb','bsc','ton','ton',amt,wallet)
+        payin = exc['payinAddress']
+        toamt = exc['toAmount']
+        msg = f"""Bridging From BNB to Ton
+        
+Pay-in Address: `{payin}`
+
+Pay-out Wallet: `{wallet}`
+
+Amount-In: *{amt}*
+
+Amount-Out: *{toamt}*
+
+Send the amount and bridge will be completed automatically
+        """
+        markup = types.InlineKeyboardMarkup()
+        btn = types.InlineKeyboardButton('Cancel', callback_data='cancel')
+        markup.add(btn)
+        bot.send_message(owner, msg, 'Markdown', reply_markup=markup)
+        db_bridge.del_user(owner)
+        
+        
+    elif call.data == 'ercton':
+        min = minimum('usdt','eth','ton','ton')
+        msg = f"You're Swaping from USDT(ERC20) to TON\n Minimum amount to swap is {min}\n Enter swap amount below:"
+        db_bridge.add_user(owner)
+        s = bot.send_message(owner, msg)
+        bot.register_next_step_handler(s, erc1)
+        
+        
+    elif call.data == "confirm5":
+        amt = db_bridge.get_amount(owner)
+        exc = exchange('usdt','eth','ton','ton',amt,wallet)
+        payin = exc['payinAddress']
+        toamt = exc['toAmount']
+        msg = f"""Bridging From USDT to Ton
+        
+Pay-in Address: `{payin}`
+
+Pay-out Wallet: `{wallet}`
+
+Amount-In: *{amt}*
+
+Amount-Out: *{toamt}*
+
+Send the amount and bridge will be completed automatically
+        """
+        markup = types.InlineKeyboardMarkup()
+        btn = types.InlineKeyboardButton('Cancel', callback_data='cancel')
+        markup.add(btn)
+        bot.send_message(owner, msg, 'Markdown', reply_markup=markup)
+        db_bridge.del_user(owner)
+        
+        
+    elif call.data == 'trcton':
+        min = minimum('usdt','trx','ton','ton')
+        msg = f"You're Swaping from USDT(TRC20) to TON\n Minimum amount to swap is {min}\n Enter swap amount below:"
+        db_bridge.add_user(owner)
+        s = bot.send_message(owner, msg)
+        bot.register_next_step_handler(s, trc1)
+        
+        
+    elif call.data == "confirm6":
+        amt = db_bridge.get_amount(owner)
+        exc = exchange('usdt','trx','ton','ton',amt,wallet)
+        payin = exc['payinAddress']
+        toamt = exc['toAmount']
+        msg = f"""Bridging From USDT(TRC20) to Ton
+        
+Pay-in Address: `{payin}`
+
+Pay-out Wallet: `{wallet}`
+
+Amount-In: *{amt}*
+
+Amount-Out: *{toamt}*
+
+Send the amount and bridge will be completed automatically
+        """
+        markup = types.InlineKeyboardMarkup()
+        btn = types.InlineKeyboardButton('Cancel', callback_data='cancel')
+        markup.add(btn)
+        bot.send_message(owner, msg, 'Markdown', reply_markup=markup)
+        db_bridge.del_user(owner)     
         
         
     elif call.data == 'tonbridge':
@@ -921,17 +1136,177 @@ Tap on *Bridge to Ton* To bridge from Ton to other chains
 
 def etht1(message):
     owner = message.chat.id
+    wallet = db_user.get_wallet(owner)
     try:
         initial = float(message.text)
         db_bridge.update_amount(initial, owner)
     except Exception as e:
         bot.send_message(message.chat.id, "Message should be a number ")
-    
-    markup = types.InlineKeyboardMarkup()
-    btn = types.InlineKeyboardButton('Confirm Bridge ', callback_data='confirm')
-    msg = f"""You're about to swap {initial}ETH to {0}Ton
-    
-    """
+        
+    min = minimum('eth','eth','ton','ton')
+    if initial < min:
+        s = bot.send_message(owner, "bridge amount lower than minimum bridge amount\nPlease enter amount: ")
+        bot.register_next_step_handler(s, etht1)
+    else:
+        markup = types.InlineKeyboardMarkup()
+        btn = types.InlineKeyboardButton('Confirm Bridge ', callback_data='confirm')
+        out = output('eth','eth','ton', 'ton', initial)
+        msg = f"""You're about to swap *{initial} ETH* to *{out} Ton* to your wallet address `{wallet}`
+        
+Click on the button below to confirm swap 
+        """
+        markup.add(btn)
+        bot.send_message(owner, msg, 'Markdown', reply_markup=markup)
+        
+        
+def sol1(message):
+    owner = message.chat.id
+    wallet = db_user.get_wallet(owner)
+    try:
+        initial = float(message.text)
+        db_bridge.update_amount(initial, owner)
+    except Exception as e:
+        bot.send_message(message.chat.id, "Message should be a number ")
+        
+    min = minimum('sol','sol','ton','ton')
+    if initial < min:
+        s = bot.send_message(owner, "bridge amount lower than minimum bridge amount\nPlease enter amount: ")
+        bot.register_next_step_handler(s, sol1)
+    else:
+        markup = types.InlineKeyboardMarkup()
+        btn = types.InlineKeyboardButton('Confirm Bridge ', callback_data='confirm1')
+        out = output('sol','sol','ton', 'ton', initial)
+        msg = f"""You're about to swap *{initial} SOL* to *{out} Ton* to your wallet address `{wallet}`
+        
+Click on the button below to confirm swap 
+        """
+        markup.add(btn)
+        bot.send_message(owner, msg, 'Markdown', reply_markup=markup)
+        
+        
+def base1(message):
+    owner = message.chat.id
+    wallet = db_user.get_wallet(owner)
+    try:
+        initial = float(message.text)
+        db_bridge.update_amount(initial, owner)
+    except Exception as e:
+        bot.send_message(message.chat.id, "Message should be a number ")
+        
+    min = minimum('eth','base','ton','ton')
+    if initial < min:
+        s = bot.send_message(owner, "bridge amount lower than minimum bridge amount\nPlease enter amount: ")
+        bot.register_next_step_handler(s, base1)
+    else:
+        markup = types.InlineKeyboardMarkup()
+        btn = types.InlineKeyboardButton('Confirm Bridge ', callback_data='confirm2')
+        out = output('eth','base','ton', 'ton', initial)
+        msg = f"""You're about to swap *{initial} Base* to *{out} Ton* to your wallet address `{wallet}`
+        
+Click on the button below to confirm swap 
+        """
+        markup.add(btn)
+        bot.send_message(owner, msg, 'Markdown', reply_markup=markup)
+        
+        
+def btc1(message):
+    owner = message.chat.id
+    wallet = db_user.get_wallet(owner)
+    try:
+        initial = float(message.text)
+        db_bridge.update_amount(initial, owner)
+    except Exception as e:
+        bot.send_message(message.chat.id, "Message should be a number ")
+        
+    min = minimum('btc','btc','ton','ton')
+    if initial < min:
+        s = bot.send_message(owner, "bridge amount lower than minimum bridge amount\nPlease enter amount: ")
+        bot.register_next_step_handler(s, btc1)
+    else:
+        markup = types.InlineKeyboardMarkup()
+        btn = types.InlineKeyboardButton('Confirm Bridge ', callback_data='confirm3')
+        out = output('btc','btc','ton', 'ton', initial)
+        msg = f"""You're about to swap *{initial} BTC* to *{out} Ton* to your wallet address `{wallet}`
+        
+Click on the button below to confirm swap 
+        """
+        markup.add(btn)
+        bot.send_message(owner, msg, 'Markdown', reply_markup=markup)
+        
+        
+def bnb1(message):
+    owner = message.chat.id
+    wallet = db_user.get_wallet(owner)
+    try:
+        initial = float(message.text)
+        db_bridge.update_amount(initial, owner)
+    except Exception as e:
+        bot.send_message(message.chat.id, "Message should be a number ")
+        
+    min = minimum('bnb','bsc','ton','ton')
+    if initial < min:
+        s = bot.send_message(owner, "bridge amount lower than minimum bridge amount\nPlease enter amount: ")
+        bot.register_next_step_handler(s, bnb1)
+    else:
+        markup = types.InlineKeyboardMarkup()
+        btn = types.InlineKeyboardButton('Confirm Bridge ', callback_data='confirm4')
+        out = output('bnb','bsc','ton', 'ton', initial)
+        msg = f"""You're about to swap *{initial} BNB* to *{out} Ton* to your wallet address `{wallet}`
+        
+Click on the button below to confirm swap 
+        """
+        markup.add(btn)
+        bot.send_message(owner, msg, 'Markdown', reply_markup=markup)
+        
+        
+def erc1(message):
+    owner = message.chat.id
+    wallet = db_user.get_wallet(owner)
+    try:
+        initial = float(message.text)
+        db_bridge.update_amount(initial, owner)
+    except Exception as e:
+        bot.send_message(message.chat.id, "Message should be a number ")
+        
+    min = minimum('usdt','eth','ton','ton')
+    if initial < min:
+        s = bot.send_message(owner, "bridge amount lower than minimum bridge amount\nPlease enter amount: ")
+        bot.register_next_step_handler(s, erc1)
+    else:
+        markup = types.InlineKeyboardMarkup()
+        btn = types.InlineKeyboardButton('Confirm Bridge ', callback_data='confirm5')
+        out = output('usdt','eth','ton', 'ton', initial)
+        msg = f"""You're about to swap *{initial} USDT(ERC20)* to *{out} Ton* to your wallet address `{wallet}`
+        
+Click on the button below to confirm swap 
+        """
+        markup.add(btn)
+        bot.send_message(owner, msg, 'Markdown', reply_markup=markup)
+        
+        
+def trc1(message):
+    owner = message.chat.id
+    wallet = db_user.get_wallet(owner)
+    try:
+        initial = float(message.text)
+        db_bridge.update_amount(initial, owner)
+    except Exception as e:
+        bot.send_message(message.chat.id, "Message should be a number ")
+        
+    min = minimum('usdt','trx','ton','ton')
+    if initial < min:
+        s = bot.send_message(owner, "bridge amount lower than minimum bridge amount\nPlease enter amount: ")
+        bot.register_next_step_handler(s, trc1)
+    else:
+        markup = types.InlineKeyboardMarkup()
+        btn = types.InlineKeyboardButton('Confirm Bridge ', callback_data='confirm6')
+        out = output('usdt','trx','ton', 'ton', initial)
+        msg = f"""You're about to swap *{initial} USDT(TRC20)* to *{out} Ton* to your wallet address `{wallet}`
+        
+Click on the button below to confirm swap 
+        """
+        markup.add(btn)
+        bot.send_message(owner, msg, 'Markdown', reply_markup=markup)
 
         
 def buy_x(message):

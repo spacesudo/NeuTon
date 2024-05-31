@@ -94,3 +94,4 @@ def get_pair(addr: str):
         return "failed to connect try again later"
     
     
+#print(get_pool('EQDLBxmFug-g-c13i6Ur6ldoEbT7mT9ZtfoQNf7Alli-A19Q'))

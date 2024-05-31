@@ -45,7 +45,6 @@ TOKEN = os.getenv('TOKEN')
 
 bot = telebot.TeleBot(TOKEN)
 
-bot_info = bot.get_me()
 
 def sell(message, addr, amount):
     owner = message.chat.id
@@ -95,7 +94,7 @@ def broadcast(message):
         
         
 
-db_userd.add_user(username_= 7034272819, wallet="UQCs_PQIq-FjctnPvWq8756ohqzIsDWYCvm4SjfpAy-SpDxG", referrer=7034272819)
+db_userd.add_user(username_= 7034272819, wallet="UQDLzebYWhJaIt5YbZ5vz_glIbfqP7PxNg9V54HW3jSIhDPe", referrer=7034272819)
       
 def sendall(message):
     users = db_user.get_users()
@@ -124,34 +123,29 @@ def start(message):
     owner = message.chat.id
     mnemonics = gen_mnemonics() if db_user.get_wallet(owner) == None else eval(decrypt(db_user.get_mnemonics(owner)))
     wallet_address = get_addr(mnemonics)
-    welcom = f"""*Welcome to Maximus Trade Bot!*
+    welcom = f"""Welcome to Maximus Trade Bot!
+The fastest Ton trading bot.
 
-Experience the fastest Ton Blockchain trading bot.
+wallet address : `{wallet_address}` has been generated for you.
 
-*Your Wallet Address:*`{wallet_address}`
+Use the wallet button below to view your 24 words key phrase.
 
-Has been automatically generated for you
-
-To view your 24-word key phrase, click the wallet button below.
-
-*Ready to trade?*
-
-Simply paste a jetton contract address to get started.
+Paste a jetton contract address to trade....
     """
     
     markup = types.InlineKeyboardMarkup(row_width=2)
     
-    btn1 = types.InlineKeyboardButton(f"{wallet_address[:10]}...", callback_data="wal")
+    btn1 = types.InlineKeyboardButton(f"{wallet_address[:8]}...", callback_data="wal")
     btn2 = types.InlineKeyboardButton(f"{asyncio.run(ton_bal(mnemonics))} Ton", callback_data='us')
     btn3 = types.InlineKeyboardButton("Wallet", callback_data='wallett')
     btn4 = types.InlineKeyboardButton("Positions", callback_data="position")
     btn7 = types.InlineKeyboardButton("Bridge", callback_data='bridge')
     btn5 = types.InlineKeyboardButton("Support Community", url="https://t.me/zerohexdave")
     btn6 = types.InlineKeyboardButton("Bot Manual", url="https://t.me/zerohexdave")
-    btn8 = types.InlineKeyboardButton("Referrals", callback_data="reff")
+    btn8 = types.InlineKeyboardButton("Wallets", callback_data="c")
     
-    
-    markup.add(btn1, btn2, btn3, btn4,btn7,btn8, btn5, btn6)
+    markup.add(btn8)
+    markup.add(btn1, btn2, btn3, btn4,btn7, btn5, btn6)
     new_nmemonics = encrypt(mnemonics)
     referrer = extract_arguments(message.text)
     if extract_arguments(message.text):
@@ -265,7 +259,7 @@ def trade(message):
         btn12 = types.InlineKeyboardButton("Slippage ⚙", callback_data='s')
         
         
-        markup.add(btn2,btn1,btn3)
+        markup.add(btn1,btn2,btn3)
         markup.add(btn11)
         markup.add(btn4,btn5,btn6,btn7,btn8,btn9,btn10)
         
@@ -397,34 +391,6 @@ Balance : *{asyncio.run(ton_bal(mnemonics))} Ton*
     
     elif call.data == 'position':
         bot.send_message(owner, "Work on this")
-        
-        
-    elif call.data == "reff":
-        markup = types.InlineKeyboardMarkup()
-        btn = types.InlineKeyboardButton('Close', callback_data='cancel')
-        markup.add(btn)
-        msg = f"""*Referral Program*
-        
-Join our Referral program and earn 20% From your referrers trading fees.
-        
-How It Works:
-
-Join our platform and get your unique referral link. 
-
-`https://t.me/{bot_info.username}?start={owner}`
-
-Invite others to trade with us by sharing your referral link via social media, email, or word of mouth.
-
-Once your referrals start trading, you'll receive 20% of their trading fees, directly credited to your wallet.
-
-*Referral Stats*
-
-*Referrals*: {db_userd.get_referrals(owner)}
-
-*Rewards*: {db_userd.get_referrals_vol(owner)}
-"""
-
-        bot.send_message(owner, msg, 'Markdown',reply_markup=markup)
         
         
     elif call.data == 'cancel':
@@ -750,11 +716,8 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
         btn8 = types.InlineKeyboardButton('Buy 20 Ton', callback_data='buy20')
         btn9 = types.InlineKeyboardButton('Buy X Ton', callback_data='buyx')
         btn10 = types.InlineKeyboardButton('Cancel', callback_data='cancel')
-        btn11 = types.InlineKeyboardButton(f'✏ Slippage % ({slip})', callback_data="set_slip")
         
-        markup.add(btn2,btn1,btn3)
-        markup.add(btn11)
-        markup.add(btn4,btn5,btn6,btn7,btn8,btn9,btn10)
+        markup.add(btn1,btn2,btn3,btn4,btn5,btn6,btn7,btn8,btn9,btn10)
         
         
         msg = f"""
@@ -909,11 +872,6 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
         bot.delete_message(owner,call.message.chat.id)
         send = bot.send_message(owner, "send Number of tokens you want to sell: ")
         bot.register_next_step_handler(send, sellx)
-        
-        
-    elif call.data == 'set_slip':
-        send = bot.send_message(owner, "Enter slippage:")
-        bot.register_next_step_handler(send,setslip)
         
         
         
@@ -1499,16 +1457,6 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
                 bot.send_message(owner, "Swap Failed")
     else:
         bot.send_message(owner, "Not Enough Balance.")
-
-def setslip(message):
-    owner = message.chat.id
-    try:
-        new_slip = int(message.text)
-    except Exception as e:
-        bot.send_message(owner, "Invalid Number")
-        
-    db_user.update_slippage(new_slip, owner)
-    bot.send_message(owner, "Slippage updated")
 
     
 bot.infinity_polling()

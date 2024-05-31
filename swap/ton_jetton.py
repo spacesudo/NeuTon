@@ -5,7 +5,7 @@ import time
 
 #mnemonics = ["your", "mnemonics", "here"]
 
-async def jetton_swap(jetton_addr: str, mnemonics: list, amount: int):
+async def jetton_swap(jetton_addr: str, mnemonics: list, amount: int, slip = 0.5):
     try:
         provider = LiteBalancer.from_mainnet_config(1)
         await provider.start_up()
@@ -27,7 +27,7 @@ async def jetton_swap(jetton_addr: str, mnemonics: list, amount: int):
 
         swap = VaultNative.create_swap_payload(amount=swap_amount,
                                             pool_address=pool.address,
-                                            swap_params=swap_params, limit=5)
+                                            swap_params=swap_params, limit=slip)
 
         swap_amount = int(swap_amount + (0.25*1e9)) # 0.25 = gas_value
 

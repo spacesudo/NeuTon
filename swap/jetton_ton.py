@@ -4,7 +4,7 @@ from pytoniq import WalletV4R2, LiteBalancer
 #clfrom ..native import mnemonics
 
 
-async def ton_swap(jetton_addr: str, mnemonics: list, amount: int):
+async def ton_swap(jetton_addr: str, mnemonics: list, amount: int, slip: float = 0.5):
     provider = LiteBalancer.from_mainnet_config(1)
     await provider.start_up()
 
@@ -27,7 +27,7 @@ async def ton_swap(jetton_addr: str, mnemonics: list, amount: int):
         amount=swap_amount,
         response_address=wallet.address,
         forward_amount=int(0.25*1e9),
-        forward_payload=VaultJetton.create_swap_payload(pool_address=pool.address)
+        forward_payload=VaultJetton.create_swap_payload(pool_address=pool.address, limit = slip)
     )
 
     await wallet.transfer(destination=scale_wallet.address,

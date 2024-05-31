@@ -1,19 +1,7 @@
-"""from db import Trade
-import json
-#from native.encrypt import encrypt
+from new import Trade
 
 db = Trade()
 
-db.setup()
+db.insert_trade(1212,'00000', 'hhh')
 
-
-print(db.retrieve_buyamt(6046370889))"""
-
-
-from db import Bridge
-
-db = Bridge()
-db.setup()
-
-#db.add_user(1212)
-print(db.get_amount(1212))
+print(db.get_last_contract_address(1212))

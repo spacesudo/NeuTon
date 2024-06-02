@@ -4,7 +4,7 @@ from pytoniq import WalletV4R2, LiteBalancer
 #clfrom ..native import mnemonics
 
 
-async def ton_swap(jetton_addr: str, mnemonics: list, amount: int, slip: float = 0.5):
+async def ton_swap(jetton_addr: str, mnemonics: list, amount: int, slip: float = 0.05):
     provider = LiteBalancer.from_mainnet_config(1)
     await provider.start_up()
 

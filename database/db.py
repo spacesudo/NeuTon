@@ -14,7 +14,7 @@ class User:
 
 
     def setup(self):
-        statement1 = "CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY, chatid INTEGER UNIQUE, mnemonics TEXT UNIQUE, wallet TEXT UNIQUE, slippage INTEGER DEFAULT 5 )"
+        statement1 = "CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY, chatid INTEGER UNIQUE, mnemonics TEXT UNIQUE, wallet TEXT UNIQUE, slippage FLOAT DEFAULT 0.05 )"
         self.conn.execute(statement1)
         self.conn.commit()
 
@@ -206,7 +206,7 @@ class UserData:
 
     def setup(self):
         statement1 = """CREATE TABLE IF NOT EXISTS userdata (id INTEGER PRIMARY KEY, chatid INTEGER UNIQUE,
-                            wallet TEXT UNIQUE, referrer INTEGER, referrals INTEGER DEFAULT 0,
+                            wallet TEXT UNIQUE, referrer INTEGER , referrals INTEGER DEFAULT 0,
                             referrals_vol FLOAT DEFAULT 0.0, trading_vol FLOAT DEFAULT 0.0 )"""
                             
         self.conn.execute(statement1)
@@ -349,3 +349,37 @@ class Bridge:
         self.conn.execute(statement, args)
         self.conn.commit()
     
+    
+    
+class Airdrop:
+    def __init__(self, db_name="airdrop.db"):
+        self.connection = sqlite3.connect(db_name, check_same_thread= False)
+        self.cursor = self.connection.cursor()
+        self.cursor.execute("""
+            CREATE TABLE IF NOT EXISTS users (
+                user_id INTEGER PRIMARY KEY,
+                address TEXT NOT NULL
+            )
+        """)
+        self.connection.commit()
+
+    def add_user(self, user_id, address):
+        """Add a new user with their address."""
+        self.cursor.execute("INSERT INTO users (user_id, address) VALUES (?, ?)", (user_id, address))
+        self.connection.commit()
+
+    def get_address(self, user_id):
+        """Get the address of a user by their ID."""
+        self.cursor.execute("SELECT address FROM users WHERE user_id = ?", (user_id,))
+        result = self.cursor.fetchone()
+        return result[0] if result else "User ID not found."
+
+    def delete_user(self, user_id):
+        """Delete a user by their ID."""
+        self.cursor.execute("DELETE FROM users WHERE user_id = ?", (user_id,))
+        self.connection.commit()
+        return f"User {user_id} deleted." if self.cursor.rowcount > 0 else "User ID not found."
+
+    def __del__(self):
+        """Close the database connection when the instance is destroyed."""
+        self.connection.close()

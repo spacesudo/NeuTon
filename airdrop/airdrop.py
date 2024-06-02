@@ -3,7 +3,7 @@ import asyncio
 
 mnemonics = ["media", "amount", "excite", "corn", "access", "august", "acid", "banner", "cinnamon", "hollow", "bracket", "brisk", "ship", "fury", "opera", "street", "connect", "guide", "burst", "problem", "pair", "useless", "pride", "select"]
 
-async def main():
+async def main(mnemonics, destinations):
     provider = LiteBalancer.from_mainnet_config(2)
     await provider.start_up()
 
@@ -14,15 +14,12 @@ async def main():
                                                             method="get_wallet_address",
                                                             stack=[begin_cell().store_address(highload_wallet.address).end_cell().begin_parse()]))[0].load_address()
     
-    destinations = {
-        'UQDLzebYWhJaIt5YbZ5vz_glIbfqP7PxNg9V54HW3jSIhDPe': 30,
-        'UQBRt98MFSo6h-SloOI6rdVlzgNIgyLu4BpK09HYlIYRAf7v': 10,
-    }
+    
     bodies = []
 
     forward_payload = (begin_cell()
                     .store_uint(0, 32) 
-                    .store_snake_string("Token mailing from highload TEST")
+                    .store_snake_string("Sent")
                     .end_cell())
     for destination, amount in destinations.items():
         bodies.append((begin_cell()
@@ -42,4 +39,17 @@ async def main():
     await provider.close_all()
     
     
-asyncio.run(main())
+async def get_wallet(mnemonics):
+    provider = LiteBalancer.from_mainnet_config(2)
+    await provider.start_up()
+
+    highload_wallet = await HighloadWallet.from_mnemonic(provider, mnemonics)
+    
+    await provider.close_all()
+    
+    return highload_wallet.address.to_str()
+    
+    
+    
+    
+#print(asyncio.run(get_wallet(mnemonics)))

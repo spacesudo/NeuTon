@@ -1,7 +1,7 @@
-from new import Trade
+from db import UserData
 
-db = Trade()
+db = UserData()
 
-db.insert_trade(1212,'00000', 'hhh')
+db.setup()
 
-print(db.get_last_contract_address(1212))
+print(db.get_users())

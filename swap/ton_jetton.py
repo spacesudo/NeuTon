@@ -5,7 +5,7 @@ import time
 
 #mnemonics = ["your", "mnemonics", "here"]
 
-async def jetton_swap(jetton_addr: str, mnemonics: list, amount: int, slip = 0.5):
+async def jetton_swap(jetton_addr: str, mnemonics: list, amount: int, slip = 0.05):
     try:
         provider = LiteBalancer.from_mainnet_config(1)
         await provider.start_up()

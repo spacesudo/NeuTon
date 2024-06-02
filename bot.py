@@ -15,9 +15,11 @@ from swap.prices import main_price
 from swap.info import get_symbol, get_decimal, get_mc, get_name, get_pool, get_price, get_url, get_lp, get_pair
 
 #db import 
-from database.db import User, Trade, UserData, Bridge
+from database.db import User, Trade, UserData, Bridge, Airdrop
 
 from bridge.bridge import exchange, minimum, exchange_status, output
+
+from airdrop import airdrop
 
 from fees import bot_fees, ref_fees
 import telebot
@@ -35,11 +37,14 @@ db_user = User()
 db_trade = Trade()
 db_userd = UserData()
 db_bridge = Bridge()
+db_airdrop = Airdrop()
+
 
 db_user.setup()
 db_trade.setup()
 db_userd.setup()
 
+FEES_ADDRESS = 'UQB9dNq-m1ZGrlLMgujPeQP6sIyKTKMUeWWO0ImWPtIEuQi9'
 
 TOKEN = os.getenv('TOKEN')
 
@@ -47,19 +52,34 @@ bot = telebot.TeleBot(TOKEN)
 
 bot_info = bot.get_me()
 
+
+def abbreviate(x):
+    abbreviations = ["", "K", "M", "B", "T", "Qd", "Qn", "Sx", "Sp", "O", "N", 
+    "De", "Ud", "DD"]
+    thing = "1"
+    a = 0
+    while len(thing) < len(str(x)) - 3:
+        thing += "000"
+        a += 1
+    b = int(thing)
+    thing = round(x / b, 2)
+    return str(thing) + " " + abbreviations[a]
+
+
 def sell(message, addr, amount):
     owner = message.chat.id
+    slip = db_user.get_slippage(owner=owner)
     mnemonics = eval(decrypt(db_user.get_mnemonics(owner)))
     wallet = db_user.get_wallet(owner)
     j_bal = asyncio.run(jetton_bal(addr, wallet))
     t_bal = asyncio.run(ton_bal(mnemonics))
     if j_bal >= amount and t_bal > 0.5:
-        x  = bot.send_message(owner, f"Attempting a sell at ${get_mc(addr):,} MCap")
+        x  = bot.send_message(owner, f"Attempting a sell at ${abbreviate(get_mc(addr))} MCap")
         dec1 = asyncio.run(update(addr))
         dec = dec1['decimals']
         decimal = 10**dec
         j_price = asyncio.run(main_price(amount, addr, decimal))
-        sell = asyncio.run(ton_swap(addr,mnemonics,amount))
+        sell = asyncio.run(ton_swap(addr,mnemonics,amount, slip=slip))
         time.sleep(30)
         amt = bot_fees(j_price, owner)
         ref = db_userd.get_referrer(owner)
@@ -149,9 +169,10 @@ Simply paste a jetton contract address to get started.
     btn5 = types.InlineKeyboardButton("Support Community", url="https://t.me/zerohexdave")
     btn6 = types.InlineKeyboardButton("Bot Manual", url="https://t.me/zerohexdave")
     btn8 = types.InlineKeyboardButton("Referrals", callback_data="reff")
+    btn9 = types.InlineKeyboardButton('Mass Airdrop', callback_data='airdrop')
     
     
-    markup.add(btn1, btn2, btn3, btn4,btn7,btn8, btn5, btn6)
+    markup.add(btn1, btn2, btn3, btn4,btn7,btn8,btn9, btn5, btn6)
     new_nmemonics = encrypt(mnemonics)
     referrer = extract_arguments(message.text)
     if extract_arguments(message.text):
@@ -163,10 +184,13 @@ Simply paste a jetton contract address to get started.
                 bot.send_message(owner, "Referrer not in database")
                 db_userd.add_user(owner, wallet_address, 7034272819)
             else:
-                db_userd.add_user(owner, wallet_address, referrer=referrer)
-                ref = db_userd.get_referrals(referrer)
-                reff = ref + 1
-                db_userd.update_referrals(reff, referrer)
+                if db_userd.get_referrer(owner) == None:
+                    db_userd.add_user(owner, wallet_address, referrer=referrer)
+                    ref = db_userd.get_referrals(referrer)
+                    reff = ref + 1
+                    db_userd.update_referrals(reff, referrer)
+                else:
+                    pass
     else:
         db_userd.add_user(owner, wallet_address, 7034272819)
     db_user.add_user(username_= owner, mnemonics= new_nmemonics, wallet= wallet_address)
@@ -277,7 +301,7 @@ def trade(message):
 
 💦 *LP*: `{pair}`
 
-📈 *MCap*: {get_mc(token):,} *USD* |💵 ${get_price(token)}
+📈 *MCap*: ${abbreviate(get_mc(token))} |💵 ${get_price(token)}
 
 💦 *Liquidity*: {lp} TON
 
@@ -351,6 +375,44 @@ Manually Send ton to the address above
         
     elif call.data == 'view':
         view_wallet(call.message)
+        
+    elif call.data == 'airdrop':
+        msg = f"""
+
+Easily transfer tokens to up to 256 TON addresses, each with a different amount.
+
+
+Ensure your TON Wallet has at least 2 TON to cover both Bot Fees (1 TON) and Network Fees.
+Your airdrop wallet for this operation is:
+`{asyncio.run(airdrop.get_wallet(mnemonics))}` (same mnemonics as your bot wallet).
+
+Make sure all tokens are sent to the designated wallet 
+`{asyncio.run(airdrop.get_wallet(mnemonics))}` 
+
+before proceeding to avoid errors and unnecessary bot fees.
+Send the wallet addresses and corresponding amounts, separated by commas, as shown in the example below. Ensure the list contains fewer than 256 addresses.
+Example:
+
+```
+address1, amount
+address2, amount
+address3, amount
+```
+
+Click the button below to continue.
+        """
+        markup = types.InlineKeyboardMarkup()
+        btn1 = types.InlineKeyboardButton("Continue", callback_data='startmass')
+        btn2 = types.InlineKeyboardButton('Cancel', callback_data='cancel')
+        
+        markup.add(btn1,btn2)
+        bot.send_message(owner, msg, 'Markdown', reply_markup=markup)
+        
+        
+    elif call.data == 'startmass':
+        send = bot.send_message(owner, "send Jetton Address")
+        bot.register_next_step_handler(send, air)
+        
         
     elif call.data == 'wrefresh':
         print("yessssssssss")
@@ -432,6 +494,7 @@ Once your referrals start trading, you'll receive 20% of their trading fees, dir
         
     elif call.data == 'buy1':
         bal = asyncio.run(ton_bal(mnemonics))
+        slip = db_user.get_slippage(owner)
         #print(call.data)
         if bal > 1:
             asyncio.run(deploy(mnemonics))
@@ -444,25 +507,25 @@ Once your referrals start trading, you'll receive 20% of their trading fees, dir
             get_trad = db_userd.get_trading_vol(owner)
             add_trad = amount + get_trad
             db_userd.update_trading_vol(add_trad, owner)
-            x = bot.send_message(owner, f"Attempting a buy at ${get_mc(token)} MCap")
-            buy = asyncio.run(jetton_swap(token, mnemonics, amount))
+            x = bot.send_message(owner, f"Attempting a buy at ${abbreviate(get_mc(token))} MCap")
+            buy = asyncio.run(jetton_swap(token, mnemonics, amount, slip))
             time.sleep(25)
             if buy == 1:
                 bot.delete_message(owner, x.message_id)
-                bot.send_message(owner, f"Bought {get_name(token)} at {get_mc(token)}")
+                bot.send_message(owner, f"Bought {get_name(token)} at {abbreviate(get_mc(token))}")
                 buy_mc = get_mc(token)
                 pnl = (get_mc(token)-buy_mc)/buy_mc*100
                 amt = 1
                 db_trade.update_trade(owner, token, buy_mc, buy_amount=amt)
                 msg = f"""💎 {name} ({symbol}): 🌐 {pool}
                 
-{'🟩' if round(pnl, 2) >=0 else '🟥'} *profit*: {round(pnl, 2)} | 💎 {round((get_mc(token)/buy_mc)*1, 2)} Ton
+{'🟩' if round(pnl, 2) >=0 else '🟥'} *profit*: {round(pnl, 2)} | 💎 {round((get_mc(token)/buy_mc)*amt, 2)} Ton
 
 💎 *CA*: `{token}` [🅲](https://tonscan.org/address/{token})
 
 💦 *LP*: `{pair}`
 
-📈 *MCap*: {get_mc(token)} *USD* |💵 ${get_price(token)}
+📈 *MCap*: ${abbreviate(get_mc(token))} |💵 ${get_price(token)}
 
 💦 * Liquidity*: {lp} TON
 
@@ -473,7 +536,9 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
                 
                 """
                 markup = types.InlineKeyboardMarkup()
-                btn1 = types.InlineKeyboardButton("Buy ", callback_data='buy')
+                btn1 = types.InlineKeyboardButton("Buy 5 Ton ", callback_data='buys5')
+                btn12 = types.InlineKeyboardButton("Buy 10 Ton ", callback_data='buys10')
+                btn13 = types.InlineKeyboardButton("Buy X ✏", callback_data='buysx')
                 btn11 = types.InlineKeyboardButton(f'✏ Slippage % ({slip})', callback_data="set_slip")
                 btn2 = types.InlineKeyboardButton("Sell 25%", callback_data='sell25')
                 btn3 = types.InlineKeyboardButton("Sell 50%", callback_data='sell50')
@@ -481,7 +546,7 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
                 btn5 = types.InlineKeyboardButton("Sell 100% ", callback_data='sell100')
                 btn6 = types.InlineKeyboardButton("Sell X token ", callback_data='sellx')
                 btn7 = types.InlineKeyboardButton("Refresh", callback_data='sellrefresh')
-                markup.add(btn1,btn11,btn2,btn3,btn4,btn5,btn6,btn7)
+                markup.add(btn1,btn12,btn13,btn11,btn2,btn3,btn4,btn5,btn6,btn7)
                 bot.edit_message_text(chat_id=call.message.chat.id, disable_web_page_preview= True,message_id=call.message.message_id, text= msg, parse_mode='Markdown', reply_markup=markup)
                 
             else:
@@ -492,6 +557,7 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
             
     elif call.data == 'buy5':
         bal = asyncio.run(ton_bal(mnemonics))
+        slip = db_user.get_slippage(owner)
         #print(call.data)
         if bal > 5:
             asyncio.run(deploy(mnemonics))
@@ -504,25 +570,25 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
             get_trad = db_userd.get_trading_vol(owner)
             add_trad = amount + get_trad
             db_userd.update_trading_vol(add_trad, owner)
-            x = bot.send_message(owner, f"Attempting a buy at ${get_mc(token)} MCap")
-            buy = asyncio.run(jetton_swap(token, mnemonics, amount))
+            x = bot.send_message(owner, f"Attempting a buy at ${abbreviate(get_mc(token))} MCap")
+            buy = asyncio.run(jetton_swap(token, mnemonics, amount, slip=slip))
             time.sleep(25)
             if buy == 1:
                 bot.delete_message(owner, x.message_id)
-                bot.send_message(owner, f"Bought {get_name(token)} at {get_mc(token)}")
+                bot.send_message(owner, f"Bought {get_name(token)} at {abbreviate(get_mc(token))}")
                 buy_mc = get_mc(token)
                 pnl = (get_mc(token)-buy_mc)/buy_mc*100
                 amt = 5
                 db_trade.update_trade(owner, token, buy_mc, buy_amount=amt)
                 msg = f"""💎 {name} ({symbol}): 🌐 {pool}
                 
-{'🟩' if round(pnl, 2) >=0 else '🟥'} *profit*: {round(pnl, 2)} | 💎 {round((get_mc(token)/buy_mc)*5, 2)} Ton
+{'🟩' if round(pnl, 2) >=0 else '🟥'} *profit*: {round(pnl, 2)} | 💎 {round((get_mc(token)/buy_mc)*amt, 2)} Ton
 
 💎 *CA*: `{token}` [🅲](https://tonscan.org/address/{token})
 
 💦 *LP*: `{pair}`
 
-📈 *MCap*: {get_mc(token)} *USD* |💵 ${get_price(token)}
+📈 *MCap*: ${abbreviate(get_mc(token))} |💵 ${get_price(token)}
 
 💦 * Liquidity*: {lp} TON
 
@@ -533,7 +599,9 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
                 
                 """
                 markup = types.InlineKeyboardMarkup()
-                btn1 = types.InlineKeyboardButton("Buy ", callback_data='buy')
+                btn1 = types.InlineKeyboardButton("Buy 5 Ton ", callback_data='buys5')
+                btn12 = types.InlineKeyboardButton("Buy 10 Ton ", callback_data='buys10')
+                btn13 = types.InlineKeyboardButton("Buy X ✏", callback_data='buysx')
                 btn11 = types.InlineKeyboardButton(f'✏ Slippage % ({slip})', callback_data="set_slip")
                 btn2 = types.InlineKeyboardButton("Sell 25%", callback_data='sell25')
                 btn3 = types.InlineKeyboardButton("Sell 50%", callback_data='sell50')
@@ -541,7 +609,7 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
                 btn5 = types.InlineKeyboardButton("Sell 100% ", callback_data='sell100')
                 btn6 = types.InlineKeyboardButton("Sell X token ", callback_data='sellx')
                 btn7 = types.InlineKeyboardButton("Refresh", callback_data='sellrefresh')
-                markup.add(btn1,btn11,btn2,btn3,btn4,btn5,btn6,btn7)
+                markup.add(btn1,btn12,btn13,btn11,btn2,btn3,btn4,btn5,btn6,btn7)
                 bot.edit_message_text(chat_id=call.message.chat.id, disable_web_page_preview= True ,message_id=call.message.message_id, text= msg, parse_mode='Markdown', reply_markup=markup)
                 
             else:
@@ -552,6 +620,7 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
             
     elif call.data == "buy10":
         bal = asyncio.run(ton_bal(mnemonics))
+        slip = db_user.get_slippage(owner)
         #print(call.data)
         if bal > 10:
             asyncio.run(deploy(mnemonics))
@@ -564,25 +633,25 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
             get_trad = db_userd.get_trading_vol(owner)
             add_trad = amount + get_trad
             db_userd.update_trading_vol(add_trad, owner)
-            x = bot.send_message(owner, f"Attempting a buy at ${get_mc(token)} MCap")
-            buy = asyncio.run(jetton_swap(token, mnemonics, amount))
+            x = bot.send_message(owner, f"Attempting a buy at ${abbreviate(get_mc(token))} MCap")
+            buy = asyncio.run(jetton_swap(token, mnemonics, amount,slip=slip))
             time.sleep(25)
             if buy == 1:
                 bot.delete_message(owner, x.message_id)
-                bot.send_message(owner, f"Bought {get_name(token)} at {get_mc(token)}")
+                bot.send_message(owner, f"Bought {get_name(token)} at {abbreviate(get_mc(token))}")
                 buy_mc = get_mc(token)
                 pnl = (get_mc(token)-buy_mc)/buy_mc*100
                 amt = 10
                 db_trade.update_trade(owner, token, buy_mc, buy_amount=amt)
                 msg = f"""💎 {name} ({symbol}): 🌐 {pool}
                 
-{'🟩' if round(pnl, 2) >=0 else '🟥'} *profit*: {round(pnl, 2)} | 💎 {round((get_mc(token)/buy_mc)*10, 2)} Ton
+{'🟩' if round(pnl, 2) >=0 else '🟥'} *profit*: {round(pnl, 2)} | 💎 {round((get_mc(token)/buy_mc)*amt, 2)} Ton
 
 💎 *CA*: `{token}` [🅲](https://tonscan.org/address/{token})
 
 💦 *LP*: `{pair}`
 
-📈 *MCap*: {get_mc(token)} *USD* |💵 ${get_price(token)}
+📈 *MCap: ${abbreviate(get_mc(token))} |💵 ${get_price(token)}*
 
 💦 * Liquidity*: {lp} TON
 
@@ -593,7 +662,9 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
                 
                 """
                 markup = types.InlineKeyboardMarkup()
-                btn1 = types.InlineKeyboardButton("Buy ", callback_data='buy')
+                btn1 = types.InlineKeyboardButton("Buy 5 Ton ", callback_data='buys5')
+                btn12 = types.InlineKeyboardButton("Buy 10 Ton ", callback_data='buys10')
+                btn13 = types.InlineKeyboardButton("Buy X ✏", callback_data='buysx')
                 btn11 = types.InlineKeyboardButton(f'✏ Slippage % ({slip})', callback_data="set_slip")
                 btn2 = types.InlineKeyboardButton("Sell 25%", callback_data='sell25')
                 btn3 = types.InlineKeyboardButton("Sell 50%", callback_data='sell50')
@@ -601,7 +672,7 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
                 btn5 = types.InlineKeyboardButton("Sell 100% ", callback_data='sell100')
                 btn6 = types.InlineKeyboardButton("Sell X token ", callback_data='sellx')
                 btn7 = types.InlineKeyboardButton("Refresh", callback_data='sellrefresh')
-                markup.add(btn1,btn11,btn2,btn3,btn4,btn5,btn6,btn7)
+                markup.add(btn1,btn12,btn13,btn11,btn2,btn3,btn4,btn5,btn6,btn7)
                 bot.edit_message_text(chat_id=call.message.chat.id, disable_web_page_preview=True ,message_id=call.message.message_id, text= msg, parse_mode='Markdown', reply_markup=markup)
                 
             else:
@@ -613,6 +684,7 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
     
     elif call.data == "buy15":
         bal = asyncio.run(ton_bal(mnemonics))
+        slip = db_user.get_slippage(owner)
         #print(call.data)
         if bal > 15:
             asyncio.run(deploy(mnemonics))
@@ -625,25 +697,25 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
             get_trad = db_userd.get_trading_vol(owner)
             add_trad = amount + get_trad
             db_userd.update_trading_vol(add_trad, owner)
-            x = bot.send_message(owner, f"Attempting a buy at ${get_mc(token)} MCap")
-            buy = asyncio.run(jetton_swap(token, mnemonics, amount))
+            x = bot.send_message(owner, f"Attempting a buy at ${abbreviate(get_mc(token))} MCap")
+            buy = asyncio.run(jetton_swap(token, mnemonics, amount, slip=slip))
             time.sleep(25)
             if buy == 1:
                 bot.delete_message(owner, x.message_id)
-                bot.send_message(owner, f"Bought {get_name(token)} at {get_mc(token)}")
+                bot.send_message(owner, f"Bought {get_name(token)} at {abbreviate(get_mc(token))}")
                 buy_mc = get_mc(token)
                 pnl = (get_mc(token)-buy_mc)/buy_mc*100
                 amt = 15
                 db_trade.update_trade(owner, token, buy_mc, buy_amount=amt)
                 msg = f"""💎 {name} ({symbol}): 🌐 {pool}
                 
-{'🟩' if round(pnl, 2) >=0 else '🟥'} *profit*: {round(pnl, 2)} | 💎 {round((get_mc(token)/buy_mc)*15, 2)} Ton
+{'🟩' if round(pnl, 2) >=0 else '🟥'} *profit*: {round(pnl, 2)} | 💎 {round((get_mc(token)/buy_mc)*amt, 2)} Ton
 
 💎 *CA*: `{token}` [🅲](https://tonscan.org/address/{token})
 
 💦 *LP*: `{pair}`
 
-📈 *MCap*: {get_mc(token)} *USD* |💵 ${get_price(token)}
+📈 *MCap*: ${abbreviate(get_mc(token))} |💵 ${get_price(token)}
 
 💦 * Liquidity*: {lp} TON
 
@@ -654,7 +726,9 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
                 
                 """
                 markup = types.InlineKeyboardMarkup()
-                btn1 = types.InlineKeyboardButton("Buy ", callback_data='buy')
+                btn1 = types.InlineKeyboardButton("Buy 5 Ton ", callback_data='buys5')
+                btn12 = types.InlineKeyboardButton("Buy 10 Ton ", callback_data='buys10')
+                btn13 = types.InlineKeyboardButton("Buy X ✏", callback_data='buysx')
                 btn11 = types.InlineKeyboardButton(f'✏ Slippage % ({slip})', callback_data="set_slip")
                 btn2 = types.InlineKeyboardButton("Sell 25%", callback_data='sell25')
                 btn3 = types.InlineKeyboardButton("Sell 50%", callback_data='sell50')
@@ -662,7 +736,7 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
                 btn5 = types.InlineKeyboardButton("Sell 100% ", callback_data='sell100')
                 btn6 = types.InlineKeyboardButton("Sell X token ", callback_data='sellx')
                 btn7 = types.InlineKeyboardButton("Refresh", callback_data='sellrefresh')
-                markup.add(btn1,btn11,btn2,btn3,btn4,btn5,btn6,btn7)
+                markup.add(btn1,btn12,btn13,btn11,btn2,btn3,btn4,btn5,btn6,btn7)
                 bot.edit_message_text(chat_id=call.message.chat.id,disable_web_page_preview= True ,message_id=call.message.message_id, text= msg, parse_mode='Markdown', reply_markup=markup)
                 
             else:
@@ -673,6 +747,7 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
             
     elif call.data == "buy20":
         bal = asyncio.run(ton_bal(mnemonics))
+        slip = db_user.get_slippage(owner)
         #print(call.data)
         if bal > 20:
             asyncio.run(deploy(mnemonics))
@@ -685,25 +760,25 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
             get_trad = db_userd.get_trading_vol(owner)
             add_trad = amount + get_trad
             db_userd.update_trading_vol(add_trad, owner)
-            x = bot.send_message(owner, f"Attempting a buy at ${get_mc(token)} MCap")
-            buy = asyncio.run(jetton_swap(token, mnemonics, amount))
+            x = bot.send_message(owner, f"Attempting a buy at ${abbreviate(get_mc(token))} MCap")
+            buy = asyncio.run(jetton_swap(token, mnemonics, amount, slip=slip))
             time.sleep(25)
             if buy == 1:
                 bot.delete_message(owner, x.message_id)
-                bot.send_message(owner, f"Bought {get_name(token)} at {get_mc(token)}")
+                bot.send_message(owner, f"Bought {get_name(token)} at {abbreviate(get_mc(token))}")
                 buy_mc = get_mc(token)
                 pnl = (get_mc(token)-buy_mc)/buy_mc*100
                 amt = 20
                 db_trade.update_trade(owner, token, buy_mc, buy_amount=amt)
                 msg = f"""💎 {name} ({symbol}): 🌐 {pool}
                 
-{'🟩' if round(pnl, 2) >=0 else '🟥'} *profit*: {round(pnl, 2)} | 💎 {round((get_mc(token)/buy_mc)*20, 2)} Ton
+{'🟩' if round(pnl, 2) >=0 else '🟥'} *profit*: {round(pnl, 2)} | 💎 {round((get_mc(token)/buy_mc)*amt, 2)} Ton
 
 💎 *CA*: `{token}` [🅲](https://tonscan.org/address/{token})
 
 💦 *LP*: `{pair}`
 
-📈 *MCap*: {get_mc(token)} *USD* |💵 ${get_price(token)}
+📈 *MCap*: ${abbreviate(get_mc(token))} |💵 ${get_price(token)}
 
 💦 * Liquidity*: {lp} TON
 
@@ -714,7 +789,9 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
                 
                 """
                 markup = types.InlineKeyboardMarkup()
-                btn1 = types.InlineKeyboardButton("Buy ", callback_data='buy')
+                btn1 = types.InlineKeyboardButton("Buy 5 Ton ", callback_data='buys5')
+                btn12 = types.InlineKeyboardButton("Buy 10 Ton ", callback_data='buys10')
+                btn13 = types.InlineKeyboardButton("Buy X ✏", callback_data='buysx')
                 btn11 = types.InlineKeyboardButton(f'✏ Slippage % ({slip})', callback_data="set_slip")
                 btn2 = types.InlineKeyboardButton("Sell 25%", callback_data='sell25')
                 btn3 = types.InlineKeyboardButton("Sell 50%", callback_data='sell50')
@@ -722,7 +799,7 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
                 btn5 = types.InlineKeyboardButton("Sell 100% ", callback_data='sell100')
                 btn6 = types.InlineKeyboardButton("Sell X token ", callback_data='sellx')
                 btn7 = types.InlineKeyboardButton("Refresh", callback_data='sellrefresh')
-                markup.add(btn1,btn11,btn2,btn3,btn4,btn5,btn6,btn7)
+                markup.add(btn1,btn12,btn13,btn11,btn2,btn3,btn4,btn5,btn6,btn7)
                 bot.edit_message_text(chat_id=call.message.chat.id, disable_web_page_preview=True ,message_id=call.message.message_id, text= msg, parse_mode='Markdown', reply_markup=markup)
                 
             else:
@@ -764,7 +841,7 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
 
 💦 *LP*: `{pair}`
 
-📈 *M Cap*: {get_mc(token)} *USD* |💵 ${get_price(token)}
+📈 *M Cap*: ${abbreviate(get_mc(token))} |💵 ${get_price(token)}
 
 💦 *Liquidity*: {lp} TON
 
@@ -795,7 +872,7 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
 
 💦 *LP*: `{pair}`
 
-📈 *MCap*: {get_mc(token)} *USD* |💵 ${get_price(token)}
+📈 *MCap*: ${abbreviate(get_mc(token))} |💵 ${get_price(token)}
 
 💦 * Liquidity*: {lp} TON
 
@@ -806,7 +883,9 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
                 
         """
         markup = types.InlineKeyboardMarkup()
-        btn1 = types.InlineKeyboardButton("Buy ", callback_data='buy')
+        btn1 = types.InlineKeyboardButton("Buy 5 Ton ", callback_data='buys5')
+        btn12 = types.InlineKeyboardButton("Buy 10 Ton ", callback_data='buys10')
+        btn13 = types.InlineKeyboardButton("Buy X ✏", callback_data='buysx')
         btn11 = types.InlineKeyboardButton(f'✏ Slippage % ({slip})', callback_data="set_slip")
         btn2 = types.InlineKeyboardButton("Sell 25%", callback_data='sell25')
         btn3 = types.InlineKeyboardButton("Sell 50%", callback_data='sell50')
@@ -814,7 +893,7 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
         btn5 = types.InlineKeyboardButton("Sell 100% ", callback_data='sell100')
         btn6 = types.InlineKeyboardButton("Sell X token ", callback_data='sellx')
         btn7 = types.InlineKeyboardButton("Refresh", callback_data='sellrefresh')
-        markup.add(btn1,btn11,btn2,btn3,btn4,btn5,btn6,btn7)
+        markup.add(btn1,btn12,btn13,btn11,btn2,btn3,btn4,btn5,btn6,btn7)
         bot.edit_message_text(chat_id=call.message.chat.id, disable_web_page_preview=True ,message_id=call.message.message_id, text= msg, parse_mode='Markdown', reply_markup=markup)
         
         
@@ -835,7 +914,7 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
 
 💦 *LP*: `{pair}`
 
-📈 *MCap*: {get_mc(token)} *USD* |💵 ${get_price(token)}
+📈 *MCap*: ${abbreviate(get_mc(token))} |💵 ${get_price(token)}
 
 💦 * Liquidity*: {lp} TON
 
@@ -846,7 +925,9 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
                 
         """
         markup = types.InlineKeyboardMarkup()
-        btn1 = types.InlineKeyboardButton("Buy ", callback_data='buy')
+        btn1 = types.InlineKeyboardButton("Buy 5 Ton ", callback_data='buys5')
+        btn12 = types.InlineKeyboardButton("Buy 10 Ton ", callback_data='buys10')
+        btn13 = types.InlineKeyboardButton("Buy X ✏", callback_data='buysx')
         btn11 = types.InlineKeyboardButton(f'✏ Slippage % ({slip})', callback_data="set_slip")
         btn2 = types.InlineKeyboardButton("Sell 25%", callback_data='sell25')
         btn3 = types.InlineKeyboardButton("Sell 50%", callback_data='sell50')
@@ -854,7 +935,7 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
         btn5 = types.InlineKeyboardButton("Sell 100% ", callback_data='sell100')
         btn6 = types.InlineKeyboardButton("Sell X token ", callback_data='sellx')
         btn7 = types.InlineKeyboardButton("Refresh", callback_data='sellrefresh')
-        markup.add(btn1,btn11,btn2,btn3,btn4,btn5,btn6,btn7)
+        markup.add(btn1,btn12,btn13,btn11,btn2,btn3,btn4,btn5,btn6,btn7)
         bot.edit_message_text(chat_id=call.message.chat.id, disable_web_page_preview=True ,message_id=call.message.message_id, text= msg, parse_mode='Markdown', reply_markup=markup)
 
         
@@ -874,7 +955,7 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
 
 💦 *LP*: `{pair}`
 
-📈 *MCap*: {get_mc(token)} *USD* |💵 ${get_price(token)}
+📈 *MCap*: ${abbreviate(get_mc(token))} |💵 ${get_price(token)}
 
 💦 * Liquidity*: {lp} TON
 
@@ -885,7 +966,9 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
                 
         """
         markup = types.InlineKeyboardMarkup()
-        btn1 = types.InlineKeyboardButton("Buy ", callback_data='buy')
+        btn1 = types.InlineKeyboardButton("Buy 5 Ton ", callback_data='buys5')
+        btn12 = types.InlineKeyboardButton("Buy 10 Ton ", callback_data='buys10')
+        btn13 = types.InlineKeyboardButton("Buy X ✏", callback_data='buysx')
         btn11 = types.InlineKeyboardButton(f'✏ Slippage % ({slip})', callback_data="set_slip")
         btn2 = types.InlineKeyboardButton("Sell 25%", callback_data='sell25')
         btn3 = types.InlineKeyboardButton("Sell 50%", callback_data='sell50')
@@ -893,7 +976,7 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
         btn5 = types.InlineKeyboardButton("Sell 100% ", callback_data='sell100')
         btn6 = types.InlineKeyboardButton("Sell X token ", callback_data='sellx')
         btn7 = types.InlineKeyboardButton("Refresh", callback_data='sellrefresh')
-        markup.add(btn1,btn11,btn2,btn3,btn4,btn5,btn6,btn7)
+        markup.add(btn1,btn12,btn13,btn11,btn2,btn3,btn4,btn5,btn6,btn7)
         bot.edit_message_text(chat_id=call.message.chat.id, disable_web_page_preview=True ,message_id=call.message.message_id, text= msg, parse_mode='Markdown', reply_markup=markup)
         
         
@@ -1402,7 +1485,7 @@ def sellx(message):
 
 💦 *LP*: `{pair}`
 
-📈 *MCap*: {get_mc(token)} *USD* |💵 ${get_price(token)}
+📈 *MCap*: ${abbreviate(get_mc(token))} *USD* |💵 ${get_price(token)}
 
 💦 * Liquidity*: {lp} TON
 
@@ -1413,7 +1496,9 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
                 
         """
         markup = types.InlineKeyboardMarkup()
-        btn1 = types.InlineKeyboardButton("Buy ", callback_data='buy')
+        btn1 = types.InlineKeyboardButton("Buy 5 Ton ", callback_data='buys5')
+        btn12 = types.InlineKeyboardButton("Buy 10 Ton ", callback_data='buys10')
+        btn13 = types.InlineKeyboardButton("Buy X ✏", callback_data='buysx')
         btn11 = types.InlineKeyboardButton(f'✏ Slippage % ({slip})', callback_data="set_slip")
         btn2 = types.InlineKeyboardButton("Sell 25%", callback_data='sell25')
         btn3 = types.InlineKeyboardButton("Sell 50%", callback_data='sell50')
@@ -1421,7 +1506,7 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
         btn5 = types.InlineKeyboardButton("Sell 100% ", callback_data='sell100')
         btn6 = types.InlineKeyboardButton("Sell X token ", callback_data='sellx')
         btn7 = types.InlineKeyboardButton("Refresh", callback_data='sellrefresh')
-        markup.add(btn1,btn11,btn2,btn3,btn4,btn5,btn6,btn7)
+        markup.add(btn1,btn12,btn13,btn11,btn2,btn3,btn4,btn5,btn6,btn7)
         bot.send_message(owner, msg,'Markdown', disable_web_page_preview=True, reply_markup=markup)
         
         
@@ -1455,12 +1540,12 @@ def buy_x(message):
         get_trad = db_userd.get_trading_vol(owner)
         add_trad = amount + get_trad
         db_userd.update_trading_vol(add_trad, owner)
-        x = bot.send_message(owner, f"Attempting a buy at ${get_mc(token)} MCap")
-        buy = asyncio.run(jetton_swap(token, mnemonics, amount))
+        x = bot.send_message(owner, f"Attempting a buy at ${abbreviate(get_mc(token))} MCap")
+        buy = asyncio.run(jetton_swap(token, mnemonics, amount, slip=slip))
         time.sleep(25)
         if buy == 1:
             bot.delete_message(owner, x.message_id)
-            bot.send_message(owner, f"Bought {get_name(token)} at {get_mc(token)}")
+            bot.send_message(owner, f"Bought {get_name(token)} at ${abbreviate(get_mc(token))}")
             buy_mc = get_mc(token)
             pnl = (get_mc(token)-buy_mc)/buy_mc*100
             amt = initial
@@ -1473,7 +1558,7 @@ def buy_x(message):
 
 💦 *LP*: `{pair}`
 
-📈 *MCap*: {get_mc(token)} *USD* |💵 ${get_price(token)}
+📈 *MCap*: ${abbreviate(get_mc(token))} *USD* |💵 ${get_price(token)}
 
 💦 * Liquidity*: {lp} TON
 
@@ -1484,7 +1569,9 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
                 
                 """
             markup = types.InlineKeyboardMarkup()
-            btn1 = types.InlineKeyboardButton("Buy ", callback_data='buy')
+            btn1 = types.InlineKeyboardButton("Buy 5 Ton ", callback_data='buys5')
+            btn12 = types.InlineKeyboardButton("Buy 10 Ton ", callback_data='buys10')
+            btn13 = types.InlineKeyboardButton("Buy X ✏", callback_data='buysx')
             btn11 = types.InlineKeyboardButton(f'✏ Slippage % ({slip})', callback_data="set_slip")
             btn2 = types.InlineKeyboardButton("Sell 25%", callback_data='sell25')
             btn3 = types.InlineKeyboardButton("Sell 50%", callback_data='sell50')
@@ -1492,7 +1579,7 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
             btn5 = types.InlineKeyboardButton("Sell 100% ", callback_data='sell100')
             btn6 = types.InlineKeyboardButton("Sell X token ", callback_data='sellx')
             btn7 = types.InlineKeyboardButton("Refresh", callback_data='sellrefresh')
-            markup.add(btn1,btn11,btn2,btn3,btn4,btn5,btn6,btn7)
+            markup.add(btn1,btn12,btn13,btn11,btn2,btn3,btn4,btn5,btn6,btn7)
             bot.send_message(message.chat.id, msg, parse_mode='Markdown', reply_markup=markup, disable_web_page_preview=True)
                 
         else:
@@ -1510,5 +1597,38 @@ def setslip(message):
     db_user.update_slippage(new_slip, owner)
     bot.send_message(owner, "Slippage updated")
 
+def air(message):
+    jetton = message.text
+    owner = message.chat.id
+    send = bot.send_message(message.chat.id,"Send Wallet and amount list seperated by comma: ")
+    bot.register_next_step_handler(send, drop)
+    db_airdrop.add_user(owner, jetton)
+    #bot.delete_message(message.chat.id, message.message_id)
+    
+    
+def drop(message):
+    try:
+        owner = message.chat.id
+        x = message.text
+        jetton = db_airdrop.get_address(owner)
+        lines = x.strip().split('\n')
+        db_airdrop.delete_user(owner)
+        destinations = {}
+        
+        for line in lines:
+            key, value = line.split(',')
+            destinations[key.strip()] = int(value.strip())
+    except Exception as e:
+        bot.send_message(owner, "An error occurred\n Check your wallet list and try again")
+        
+    try:
+        mn = db_user.get_mnemonics(owner)
+        mnemonics = eval(decrypt(mn))
+        asyncio.run(airdrop.main(mnemonics, destinations))
+        bot.send_message(owner, "Done")
+    except Exception as e:
+        bot.send_message(owner, "Failed To Send Tokens")
+    
+    
     
 bot.infinity_polling()

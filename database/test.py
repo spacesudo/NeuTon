@@ -1,7 +1,9 @@
-from db import UserData
+from trades import Trade
 
-db = UserData()
+s = Trade()
 
-db.setup()
+s.setup()
 
-print(db.get_users())
+#s.add(1212,'ttt', 'tyty', 12, 100)
+
+print(s.get_buy_mc(1212, 'tyty'))

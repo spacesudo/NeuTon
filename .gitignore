@@ -6,5 +6,5 @@ __pycache__
 .vs
 tonbot
 *pyc
-*db
+*.db
 test.*

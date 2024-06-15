@@ -1,6 +1,5 @@
 __pycache__
 *.json
-*.txt
 .env
 *.sqlite
 .vs
@@ -8,3 +7,5 @@ tonbot
 *pyc
 *.db
 test.*
+instance
+instance/

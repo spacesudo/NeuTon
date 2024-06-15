@@ -23,7 +23,7 @@ from database.trades import Trades
 from bridge.bridge import exchange, minimum, exchange_status, output
 
 from airdrop import airdrop
-
+import re
 from fees import bot_fees, ref_fees
 import telebot
 from telebot import types
@@ -48,6 +48,8 @@ db_user.setup()
 db_trade.setup()
 db_userd.setup()
 db_trades.setup()
+db_bridge.setup()
+
 
 
 FEES_ADDRESS = 'UQB9dNq-m1ZGrlLMgujPeQP6sIyKTKMUeWWO0ImWPtIEuQi9'
@@ -58,6 +60,16 @@ bot = telebot.TeleBot(TOKEN)
 
 bot_info = bot.get_me()
 
+
+def extract_ca(url: str):
+    pattern = r"track-([a-zA-Z0-9]+)"
+    
+    match = re.search(pattern, url)
+    
+    if match:
+        return match.group(1)
+    else: 
+        return None
 
 def abbreviate(x):
     abbreviations = ["", "K", "M", "B", "T", "Qd", "Qn", "Sx", "Sp", "O", "N", 
@@ -133,6 +145,56 @@ def sell(message, addr, amount):
         bot.send_message(owner, "⚠️Swap failed make sure there's enough Ton for gas or token amount is enough")
 
 
+def track(message, token):
+    owner = message.chat.id
+    #token = db_trades.get_last_ca(owner)
+    wallet = db_user.get_wallet(owner)
+    token_bal = asyncio.run(jetton_bal(token, wallet))
+    slip = db_user.get_slippage(owner)
+    name = get_name(token)
+    mnemonics = eval(decrypt(db_user.get_mnemonics(owner)))
+    symbol = get_symbol(token)
+    pool = get_pool(token)
+    lp = get_lp(token)
+    pair = get_pair(token)
+    if token_bal > 0:
+        buy_mc = 1 if db_trades.get_buy_mc(owner, token) == None else db_trades.get_buy_mc(owner,token)
+        pnl = (get_mc(token)-buy_mc)/buy_mc*100
+        amt = 0 if db_trades.get_buy_amt(owner, token) == None else db_trades.get_buy_amt(owner, token)
+        msg = f"""💎 {name} ({symbol}): 🌐 {pool}
+                
+{'🟩' if round(pnl, 2) > 0 else '🟥'} *profit*: {1 if round(pnl, 2) > 10000 else round(pnl, 2)} % | 💎 {round((get_mc(token)/buy_mc)*amt, 2)} Ton
+
+💎 *CA*: `{token}` [🅲](https://tonscan.org/address/{token})
+
+💦 *LP*: `{pair}`
+
+📈 *MCap*: ${abbreviate(get_mc(token))} |💵 ${get_price(token)}
+
+💦 * Liquidity*: {lp} TON
+
+*Balance*: 
+{name}: {asyncio.run(jetton_bal(token, wallet))}
+Ton: {asyncio.run(ton_bal(mnemonics))}
+                
+                
+        """
+        markup = types.InlineKeyboardMarkup()
+        btn1 = types.InlineKeyboardButton("Buy 5 Ton ", callback_data='buys5')
+        btn12 = types.InlineKeyboardButton("Buy 10 Ton ", callback_data='buys10')
+        btn13 = types.InlineKeyboardButton("Buy X ✏", callback_data='buysx')
+        btn11 = types.InlineKeyboardButton(f'✏ Slippage % ({slip})', callback_data="set_slip")
+        btn2 = types.InlineKeyboardButton("Sell 25%", callback_data='sell25')
+        btn3 = types.InlineKeyboardButton("Sell 50%", callback_data='sell50')
+        btn4 = types.InlineKeyboardButton("Sell 75%", callback_data='sell75')
+        btn5 = types.InlineKeyboardButton("Sell 100% ", callback_data='sell100')
+        btn6 = types.InlineKeyboardButton("Sell X token ", callback_data='sellx')
+        btn7 = types.InlineKeyboardButton("🔃 Refresh", callback_data='sellrefresh1')
+        markup.add(btn1,btn12,btn13,btn11,btn2,btn3,btn4,btn5,btn6,btn7)
+        bot.send_message(owner, msg, parse_mode='Markdown', reply_markup=markup, disable_web_page_preview=True)
+        #bot.edit_message_text(chat_id=call.message.chat.id, disable_web_page_preview=True ,message_id=call.message.message_id, text= msg, parse_mode='Markdown', reply_markup=markup)
+    else:
+        bot.send_message(owner, "Zero Token Balance")
 
 #Dev commands 
 
@@ -178,11 +240,11 @@ def start(message):
     owner = message.chat.id
     mnemonics = gen_mnemonics() if db_user.get_wallet(owner) == None else eval(decrypt(db_user.get_mnemonics(owner)))
     wallet_address = get_addr(mnemonics)
-    welcom = f"""*Welcome to Maximus Trade Bot!*
+    welcom = f"""*Welcome to Neuton Trade Bot!*
 
 Experience the fastest Ton Blockchain trading bot.
 
-*Your Wallet Address:*`{wallet_address}`
+*Your Wallet Address:* `{wallet_address}`
 
 Has been automatically generated for you
 
@@ -210,26 +272,44 @@ Simply paste a jetton contract address to get started.
     new_nmemonics = encrypt(mnemonics)
     referrer = extract_arguments(message.text)
     if extract_arguments(message.text):
-        if referrer == owner:
-            bot.send_message(owner, "You can't be your own referrer")
-            db_userd.add_user(owner, wallet_address, 7034272819)
-        else:
-            if db_userd.get_referrer(referrer) == None:
-                bot.send_message(owner, "Referrer not in database")
+        if str(referrer).startswith('track'):
+            ca = extract_ca(referrer)
+            track(message, ca)
+            
+        elif str(referrer).isdigit():
+            if referrer == owner:
+                bot.send_message(owner, "You can't be your own referrer")
                 db_userd.add_user(owner, wallet_address, 7034272819)
+                db_user.add_user(username_= owner, mnemonics= new_nmemonics, wallet= wallet_address)
+    
+                bot.send_message(message.chat.id, welcom, reply_markup=markup, parse_mode='Markdown')
             else:
-                if db_userd.get_referrer(owner) == None:
-                    db_userd.add_user(owner, wallet_address, referrer=referrer)
-                    ref = db_userd.get_referrals(referrer)
-                    reff = ref + 1
-                    db_userd.update_referrals(reff, referrer)
+                if db_userd.get_referrer(referrer) == None:
+                    bot.send_message(owner, "Referrer not in database")
+                    db_userd.add_user(owner, wallet_address, 7034272819)
+                    db_user.add_user(username_= owner, mnemonics= new_nmemonics, wallet= wallet_address)
+    
+                    bot.send_message(message.chat.id, welcom, reply_markup=markup, parse_mode='Markdown')
                 else:
-                    pass
+                    if db_userd.get_referrer(owner) == None:
+                        db_userd.add_user(owner, wallet_address, referrer=referrer)
+                        ref = db_userd.get_referrals(referrer)
+                        reff = ref + 1
+                        db_userd.update_referrals(reff, referrer)
+                        db_user.add_user(username_= owner, mnemonics= new_nmemonics, wallet= wallet_address)
+    
+                        bot.send_message(message.chat.id, welcom, reply_markup=markup, parse_mode='Markdown')
+                    else:
+                        db_user.add_user(username_= owner, mnemonics= new_nmemonics, wallet= wallet_address)
+    
+                        bot.send_message(message.chat.id, welcom, reply_markup=markup, parse_mode='Markdown')
+        else:
+            pass
     else:
         db_userd.add_user(owner, wallet_address, 7034272819)
-    db_user.add_user(username_= owner, mnemonics= new_nmemonics, wallet= wallet_address)
+        db_user.add_user(username_= owner, mnemonics= new_nmemonics, wallet= wallet_address)
     
-    bot.send_message(message.chat.id, welcom, reply_markup=markup, parse_mode='Markdown')
+        bot.send_message(message.chat.id, welcom, reply_markup=markup, parse_mode='Markdown')
     
     
 @bot.message_handler(commands=['wallet'])
@@ -354,7 +434,7 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
         db_trades.add(owner, name, token)
         
     except Exception as e:
-        bot.send_message(message.chat.id, "Please make sure you paste a valid contract :) ")
+        bot.send_message(message.chat.id, "Invalid Token")
         print(e)
 
 
@@ -496,7 +576,14 @@ Balance : *{asyncio.run(ton_bal(mnemonics))} Ton*
     
     
     elif call.data == 'position':
-        bot.send_message(owner, "Work on this")
+        msg = "Open Positions\n\n"
+        pos = asyncio.run(position.main(wallet))
+        for i in pos:
+            msg += f"[${i['jetton']['name']}](https://t.me/{bot_info.username}?start=track-{position.str_addr(i['jetton']['address'])}) *$ 0.0 Ton *\n"
+        markup = types.InlineKeyboardMarkup()
+        btn= types.InlineKeyboardButton('❌️ Close', callback_data="cancel")
+        markup.add(btn)
+        bot.send_message(owner, msg, parse_mode='Markdown', reply_markup=markup)
         
         
     elif call.data == "reff":
@@ -557,7 +644,7 @@ Once your referrals start trading, you'll receive 20% of their trading fees, dir
                 db_trades.update(owner,token,name, buy_mc=buy_mc, buy_amount=amt)
                 msg = f"""💎 {name} ({symbol}): 🌐 {pool}
                 
-{'🟩' if round(pnl, 2) >=0 else '🟥'} *profit*: {round(pnl, 2)} | 💎 {round((get_mc(token)/buy_mc)*amt, 2)} Ton
+{'🟩' if round(pnl, 2) >=0 else '🟥'} *profit*: {1 if round(pnl, 2) > 10000 else round(pnl, 2)} % | 💎 {round((get_mc(token)/buy_mc)*amt, 2)} Ton
 
 💎 *CA*: `{token}` [🅲](https://tonscan.org/address/{token})
 
@@ -620,7 +707,7 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
                 db_trades.update(owner,token,name, buy_mc=buy_mc, buy_amount=amt)
                 msg = f"""💎 {name} ({symbol}): 🌐 {pool}
                 
-{'🟩' if round(pnl, 2) >=0 else '🟥'} *profit*: {round(pnl, 2)} | 💎 {round((get_mc(token)/buy_mc)*amt, 2)} Ton
+{'🟩' if round(pnl, 2) >=0 else '🟥'} *profit*: {1 if round(pnl, 2) > 10000 else round(pnl, 2)} % | 💎 {round((get_mc(token)/buy_mc)*amt, 2)} Ton
 
 💎 *CA*: `{token}` [🅲](https://tonscan.org/address/{token})
 
@@ -683,7 +770,7 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
                 db_trades.update(owner,token,name, buy_mc=buy_mc, buy_amount=amt)
                 msg = f"""💎 {name} ({symbol}): 🌐 {pool}
                 
-{'🟩' if round(pnl, 2) >=0 else '🟥'} *profit*: {round(pnl, 2)} | 💎 {round((get_mc(token)/buy_mc)*amt, 2)} Ton
+{'🟩' if round(pnl, 2) >=0 else '🟥'} *profit*: {1 if round(pnl, 2) > 10000 else round(pnl, 2)} % | 💎 {round((get_mc(token)/buy_mc)*amt, 2)} Ton
 
 💎 *CA*: `{token}` [🅲](https://tonscan.org/address/{token})
 
@@ -747,7 +834,7 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
                 db_trades.update(owner,token,name, buy_mc=buy_mc, buy_amount=amt)
                 msg = f"""💎 {name} ({symbol}): 🌐 {pool}
                 
-{'🟩' if round(pnl, 2) >=0 else '🟥'} *profit*: {round(pnl, 2)} | 💎 {round((get_mc(token)/buy_mc)*amt, 2)} Ton
+{'🟩' if round(pnl, 2) >=0 else '🟥'} *profit*: {1 if round(pnl, 2) > 10000 else round(pnl, 2)} % | 💎 {round((get_mc(token)/buy_mc)*amt, 2)} Ton
 
 💎 *CA*: `{token}` [🅲](https://tonscan.org/address/{token})
 
@@ -810,7 +897,7 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
                 db_trades.update(owner,token,name, buy_mc=buy_mc, buy_amount=amt)
                 msg = f"""💎 {name} ({symbol}): 🌐 {pool}
                 
-{'🟩' if round(pnl, 2) >=0 else '🟥'} *profit*: {round(pnl, 2)} | 💎 {round((get_mc(token)/buy_mc)*amt, 2)} Ton
+{'🟩' if round(pnl, 2) >=0 else '🟥'} *profit*: {1 if round(pnl, 2) > 10000 else round(pnl, 2)} % | 💎 {round((get_mc(token)/buy_mc)*amt, 2)} Ton
 
 💎 *CA*: `{token}` [🅲](https://tonscan.org/address/{token})
 
@@ -939,12 +1026,12 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
         
     elif call.data == "sellrefresh":
         token_bal = asyncio.run(jetton_bal(token, wallet))
-        buy_mc = db_trades.get_buy_mc(owner, token)
+        buy_mc = 1 if db_trades.get_buy_mc(owner, token) == None else db_trades.get_buy_mc(owner,token)
         pnl = (get_mc(token)-buy_mc)/buy_mc*100
         amt = 0 if db_trades.get_buy_amt(owner, token) == None else db_trades.get_buy_amt(owner, token)
         msg = f"""💎 {name} ({symbol}): 🌐 {pool}
                 
-{'🟩' if round(pnl, 2) > 0 else '🟥'} *profit*: {round(pnl, 2)} | 💎 {round((get_mc(token)/buy_mc)*amt, 2)} Ton
+{'🟩' if round(pnl, 2) > 0 else '🟥'} *profit*: {1 if round(pnl, 2) > 10000 else round(pnl, 2)} % | 💎 {round((get_mc(token)/buy_mc)*amt, 2)} Ton
 
 💎 *CA*: `{token}` [🅲](https://tonscan.org/address/{token})
 
@@ -978,12 +1065,12 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
     elif call.data == "sellrefresh1":
         print("sell11111111111111111111111111")
         token_bal = asyncio.run(jetton_bal(token, wallet))
-        buy_mc = db_trades.get_buy_mc(owner, token)
+        buy_mc = 1 if db_trades.get_buy_mc(owner, token) == None else db_trades.get_buy_mc(owner,token)
         pnl = (get_mc(token)-buy_mc)/buy_mc*100
         amt = 0 if db_trades.get_buy_amt(owner, token) == None else db_trades.get_buy_amt(owner, token)
         msg = f"""💎 {name} ({symbol}): 🌐 {pool}
                 
-{'🟩' if round(pnl, 2) > 0 else '🟥'} *profit*: {round(pnl, 2)} | 💎 {round((get_mc(token)/buy_mc)*amt, 2)} Ton
+{'🟩' if round(pnl, 2) > 0 else '🟥'} *profit*: {1 if round(pnl, 2) > 10000 else round(pnl, 2)} % | 💎 {round((get_mc(token)/buy_mc)*amt, 2)} Ton
 
 💎 *CA*: `{token}` [🅲](https://tonscan.org/address/{token})
 
@@ -1020,12 +1107,12 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
         
         amount = token_bal * 0.25
         sell(call.message, token, amount)
-        buy_mc = db_trades.get_buy_mc(owner, token)
+        buy_mc = 1 if db_trades.get_buy_mc(owner, token) == None else db_trades.get_buy_mc(owner,token)
         pnl = (get_mc(token)-buy_mc)/buy_mc*100
         amt = 0 if db_trades.get_buy_amt(owner, token) == None else db_trades.get_buy_amt(owner, token)
         msg = f"""💎 {name} ({symbol}): 🌐 {pool}
                 
-{'🟩' if round(pnl, 2) > 0 else '🟥'} *profit*: {round(pnl, 2)} | 💎 {round((get_mc(token)/buy_mc)*amt, 2)} Ton
+{'🟩' if round(pnl, 2) > 0 else '🟥'} *profit*: {1 if round(pnl, 2) > 10000 else round(pnl, 2)} % | 💎 {round((get_mc(token)/buy_mc)*amt, 2)} Ton
 
 💎 *CA*: `{token}` [🅲](https://tonscan.org/address/{token})
 
@@ -1062,12 +1149,12 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
         
         amount = token_bal * 0.5
         sell(call.message, token, amount)
-        buy_mc = db_trades.get_buy_mc(owner, token)
+        buy_mc = 1 if db_trades.get_buy_mc(owner, token) == None else db_trades.get_buy_mc(owner,token)
         pnl = (get_mc(token)-buy_mc)/buy_mc*100
         amt = 0 if db_trades.get_buy_amt(owner, token) == None else db_trades.get_buy_amt(owner, token)
         msg = f"""💎 {name} ({symbol}): 🌐 {pool}
                 
-{'🟩' if round(pnl, 2) > 0.0 else '🟥'} *profit*: {round(pnl, 2)} | 💎 {round((get_mc(token)/buy_mc)*amt, 2)} Ton
+{'🟩' if round(pnl, 2) > 0.0 else '🟥'} *profit*: {1 if round(pnl, 2) > 10000 else round(pnl, 2)} % | 💎 {round((get_mc(token)/buy_mc)*amt, 2)} Ton
 
 💎 *CA*: `{token}` [🅲](https://tonscan.org/address/{token})
 
@@ -1103,12 +1190,12 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
         
         amount = token_bal * 0.75
         sell(call.message, token, amount)
-        buy_mc = db_trades.get_buy_mc(owner, token)
+        buy_mc = 1 if db_trades.get_buy_mc(owner, token) == None else db_trades.get_buy_mc(owner,token)
         pnl = (get_mc(token)-buy_mc)/buy_mc*100
         amt = 0 if db_trades.get_buy_amt(owner, token) == None else db_trades.get_buy_amt(owner, token)
         msg = f"""💎 {name} ({symbol}): 🌐 {pool}
                 
-{'🟩' if round(pnl, 2) >=0 else '🟥'} *profit*: {round(pnl, 2)} | 💎 {round((get_mc(token)/buy_mc)*amt, 2)} Ton
+{'🟩' if round(pnl, 2) >=0 else '🟥'} *profit*: {1 if round(pnl, 2) > 10000 else round(pnl, 2)} % | 💎 {round((get_mc(token)/buy_mc)*amt, 2)} Ton
 
 💎 *CA*: `{token}` [🅲](https://tonscan.org/address/{token})
 
@@ -1148,9 +1235,9 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
         bot.delete_message(owner, call.message.message_id)
         
     elif call.data == 'sellx':
-        bot.delete_message(owner,call.message.chat.id)
+        bot.delete_message(owner,call.message.message_id)
         send = bot.send_message(owner, "send Number of tokens you want to sell: ")
-        bot.register_next_step_handler(send, sellx)
+        bot.register_next_step_handler(send, sellix)
         
         
     elif call.data == 'set_slip':
@@ -1167,7 +1254,7 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
         
         
     elif call.data == 'buys10':
-        sbuy(call.message, token, 5)
+        sbuy(call.message, token, 10)
         
             
     elif call.data == 'bridge':
@@ -1443,9 +1530,379 @@ Tap on *Bridge to Ton* To bridge from Ton to other chains
 
         """
         
-        markup.add(btn1, btn2,btn3,btn4,btn5,btn6,btn7,btn8,btn9)
+        markup.add(btn1, btn2,btn3,btn5,btn7,btn8,btn9)
         
         bot.send_message(owner, msg, 'Markdown', reply_markup=markup)
+        
+    elif call.data == 'toneth':
+        min = minimum('ton', 'ton', 'eth', 'eth')
+        msg = f"Minimum bridge amount for TON to ETH is {min}\n Please enter bridge amount: "
+        db_bridge.add_user(owner)
+        s = bot.send_message(owner, msg)
+        bot.register_next_step_handler(s, toneth)
+    elif call.data == 'tonsol':
+        min = minimum('ton', 'ton', 'sol', 'sol')
+        msg = f"Minimum bridge amount for TON to SOL is {min}\n Please enter bridge amount: "
+        db_bridge.add_user(owner)
+        s = bot.send_message(owner, msg)
+        bot.register_next_step_handler(s, solton)
+    elif call.data == 'tonerc':
+        min = minimum('ton', 'ton', 'eth', 'usdt')
+        msg = f"Minimum bridge amount for TON to USDT(ERC20) is {min}\n Please enter bridge amount: "
+        db_bridge.add_user(owner)
+        s = bot.send_message(owner, msg)
+        bot.register_next_step_handler(s, tonerc)
+    elif call.data == 'tonbtc':
+        min = minimum('ton', 'ton', 'btc', 'btc')
+        msg = f"Minimum bridge amount for TON to BTC is {min}\n Please enter bridge amount: "
+        db_bridge.add_user(owner)
+        s = bot.send_message(owner, msg)
+        bot.register_next_step_handler(s, tonbtc)
+    elif call.data == 'tontrc':
+        min = minimum('ton', 'ton', 'trx', 'usdt')
+        msg = f"Minimum bridge amount for TON to USDT(TRC20) is {min}\n Please enter bridge amount: "
+        db_bridge.add_user(owner)
+        s = bot.send_message(owner, msg)
+        bot.register_next_step_handler(s, tontrc)
+        
+        
+    elif call.data == 'tonethc':
+        bot.delete_message(owner, call.message.message_id)
+        amt = db_bridge.get_amount(owner)
+        wallet = db_bridge.get_txid(owner)
+        exc = exchange('ton','ton', 'eth', 'eth',amt,wallet)
+        payin = exc['payinAddress']
+        toamt = exc['toAmount']
+        msg = f"""Bridging from Ton to Eth
+        
+Pay-in Address: `{payin}`
+
+Pay-out Wallet: `{wallet}`
+
+Amount-In: *{amt}*
+
+Amount-Out: *{toamt}*
+
+Send the amount and bridge will be completed automatically
+        """
+        markup = types.InlineKeyboardMarkup()
+        btn = types.InlineKeyboardButton('Cancel', callback_data='cancel')
+        markup.add(btn)
+        bot.send_message(owner, msg, 'Markdown', reply_markup=markup)
+        db_bridge.del_user(owner)
+        
+        
+        
+    elif call.data == 'tonbtcc':
+        bot.delete_message(owner, call.message.message_id)
+        amt = db_bridge.get_amount(owner)
+        wallet = db_bridge.get_txid(owner)
+        exc = exchange('ton','ton', 'btc', 'btc',amt,wallet)
+        payin = exc['payinAddress']
+        toamt = exc['toAmount']
+        msg = f"""Bridging from Ton to BTC
+        
+Pay-in Address: `{payin}`
+
+Pay-out Wallet: `{wallet}`
+
+Amount-In: *{amt}*
+
+Amount-Out: *{toamt}*
+
+Send the amount and bridge will be completed automatically
+        """
+        markup = types.InlineKeyboardMarkup()
+        btn = types.InlineKeyboardButton('Cancel', callback_data='cancel')
+        markup.add(btn)
+        bot.send_message(owner, msg, 'Markdown', reply_markup=markup)
+        db_bridge.del_user(owner)
+        
+        
+    elif call.data == 'tonsolc':
+        bot.delete_message(owner, call.message.message_id)
+        amt = db_bridge.get_amount(owner)
+        wallet = db_bridge.get_txid(owner)
+        exc = exchange('ton','ton', 'sol', 'sol',amt,wallet)
+        payin = exc['payinAddress']
+        toamt = exc['toAmount']
+        msg = f"""Bridging from Ton to Sol
+        
+Pay-in Address: `{payin}`
+
+Pay-out Wallet: `{wallet}`
+
+Amount-In: *{amt}*
+
+Amount-Out: *{toamt}*
+
+Send the amount and bridge will be completed automatically
+        """
+        markup = types.InlineKeyboardMarkup()
+        btn = types.InlineKeyboardButton('Cancel', callback_data='cancel')
+        markup.add(btn)
+        bot.send_message(owner, msg, 'Markdown', reply_markup=markup)
+        db_bridge.del_user(owner)
+        
+        
+    elif call.data == 'tonercc':
+        bot.delete_message(owner, call.message.message_id)
+        amt = db_bridge.get_amount(owner)
+        wallet = db_bridge.get_txid(owner)
+        exc = exchange('ton','ton', 'eth', 'usdt',amt,wallet)
+        payin = exc['payinAddress']
+        toamt = exc['toAmount']
+        msg = f"""Bridging from Ton to USDT(ERC20)
+        
+Pay-in Address: `{payin}`
+
+Pay-out Wallet: `{wallet}`
+
+Amount-In: *{amt}*
+
+Amount-Out: *{toamt}*
+
+Send the amount and bridge will be completed automatically
+        """
+        markup = types.InlineKeyboardMarkup()
+        btn = types.InlineKeyboardButton('Cancel', callback_data='cancel')
+        markup.add(btn)
+        bot.send_message(owner, msg, 'Markdown', reply_markup=markup)
+        db_bridge.del_user(owner)
+        
+    
+    elif call.data == 'tontrcc':
+        bot.delete_message(owner, call.message.message_id)
+        amt = db_bridge.get_amount(owner)
+        wallet = db_bridge.get_txid(owner)
+        exc = exchange('ton','ton', 'trx', 'usdt',amt,wallet)
+        payin = exc['payinAddress']
+        toamt = exc['toAmount']
+        msg = f"""Bridging from Ton to USDT(TRC20)
+        
+Pay-in Address: `{payin}`
+
+Pay-out Wallet: `{wallet}`
+
+Amount-In: *{amt}*
+
+Amount-Out: *{toamt}*
+
+Send the amount and bridge will be completed automatically
+        """
+        markup = types.InlineKeyboardMarkup()
+        btn = types.InlineKeyboardButton('Cancel', callback_data='cancel')
+        markup.add(btn)
+        bot.send_message(owner, msg, 'Markdown', reply_markup=markup)
+        db_bridge.del_user(owner)
+    
+    
+def toneth(message):
+    owner = message.chat.id
+    try:
+        amt = float(message.text)
+        min = minimum('ton','ton', 'eth', 'eth')
+        if amt < min:
+            bot.send_message(owner, "Amount Lower than Minimum bridge amount {min}\nEnter amount: ")
+            bot.register_next_step_handler(message, toneth)
+        else:
+            db_bridge.update_amount(amt, owner)
+            s = bot.send_message(owner, "send Wallet to bridge to: ")
+            bot.register_next_step_handler(s, toneth1y)
+    except Exception as e:
+        bot.send_message(owner, "Invalid number\nPlease Enter a valid number: ")
+        bot.register_next_step_handler(message, toneth)  
+        
+        
+def toneth1y(message):
+    print(message.text)
+    try:
+        owner = message.chat.id
+        wallet = message.text
+        db_bridge.update_txid(wallet, owner) 
+        markup = types.InlineKeyboardMarkup()
+        btn1 = types.InlineKeyboardButton('Cancel', callback_data='cancel')
+        btn2 = types.InlineKeyboardButton('Confirm', callback_data='tonethc')
+        markup.add(btn1,btn2)
+        amt = db_bridge.get_amount(owner)
+        y = output('ton','ton','eth','eth', amt)
+        print(y)
+        msg = f"""You're about to bridge *{amt} Ton* to *{y} Eth*
+        
+Hit the Confirm button to confirm swap
+        
+        """
+        
+        bot.send_message(owner, msg, reply_markup=markup, parse_mode="Markdown")
+    except Exception as e:
+        print(e)
+        
+        
+        
+def solton(message):
+    owner = message.chat.id
+    try:
+        amt = float(message.text)
+        min = minimum('ton','ton', 'sol', 'sol')
+        if amt < min:
+            bot.send_message(owner, "Amount Lower than Minimum bridge amount {min}\nEnter amount: ")
+            bot.register_next_step_handler(message, solton)
+        else:
+            db_bridge.update_amount(amt, owner)
+            s = bot.send_message(owner, "send Wallet to bridge to: ")
+            bot.register_next_step_handler(s, tonsol1y)
+    except Exception as e:
+        bot.send_message(owner, "Invalid number\nPlease Enter a valid number: ")
+        bot.register_next_step_handler(message, solton)  
+        
+        
+def tonsol1y(message):
+    print(message.text)
+    try:
+        owner = message.chat.id
+        wallet = message.text
+        db_bridge.update_txid(wallet, owner) 
+        markup = types.InlineKeyboardMarkup()
+        btn1 = types.InlineKeyboardButton('Cancel', callback_data='cancel')
+        btn2 = types.InlineKeyboardButton('Confirm', callback_data='tonsolc')
+        markup.add(btn1,btn2)
+        amt = db_bridge.get_amount(owner)
+        y = output('ton','ton','sol','sol', amt)
+        print(y)
+        msg = f"""You're about to bridge *{amt} Ton* to *{y} Sol*
+        
+Hit the Confirm button to confirm swap
+        
+        """
+        
+        bot.send_message(owner, msg, reply_markup=markup, parse_mode="Markdown")
+    except Exception as e:
+        print(e)
+        
+        
+        
+def tonbtc(message):
+    owner = message.chat.id
+    try:
+        amt = float(message.text)
+        min = minimum('ton','ton', 'btc', 'btc')
+        if amt < min:
+            bot.send_message(owner, "Amount Lower than Minimum bridge amount {min}\nEnter amount: ")
+            bot.register_next_step_handler(message, tonbtc)
+        else:
+            db_bridge.update_amount(amt, owner)
+            s = bot.send_message(owner, "send Wallet to bridge to: ")
+            bot.register_next_step_handler(s, tonbtc1y)
+    except Exception as e:
+        bot.send_message(owner, "Invalid number\nPlease Enter a valid number: ")
+        bot.register_next_step_handler(message, tonbtc)  
+        
+        
+def tonbtc1y(message):
+    print(message.text)
+    try:
+        owner = message.chat.id
+        wallet = message.text
+        db_bridge.update_txid(wallet, owner) 
+        markup = types.InlineKeyboardMarkup()
+        btn1 = types.InlineKeyboardButton('Cancel', callback_data='cancel')
+        btn2 = types.InlineKeyboardButton('Confirm', callback_data='tonbtcc')
+        markup.add(btn1,btn2)
+        amt = db_bridge.get_amount(owner)
+        y = output('ton','ton','btc','btc', amt)
+        print(y)
+        msg = f"""You're about to bridge *{amt} Ton* to *{y} BTC*
+        
+Hit the Confirm button to confirm swap
+        
+        """
+        
+        bot.send_message(owner, msg, reply_markup=markup, parse_mode="Markdown")
+    except Exception as e:
+        print(e)
+        
+        
+        
+def tonerc(message):
+    owner = message.chat.id
+    try:
+        amt = float(message.text)
+        min = minimum('ton','ton', 'eth', 'usdt')
+        if amt < min:
+            bot.send_message(owner, "Amount Lower than Minimum bridge amount {min}\nEnter amount: ")
+            bot.register_next_step_handler(message, tonerc)
+        else:
+            db_bridge.update_amount(amt, owner)
+            s = bot.send_message(owner, "send Wallet to bridge to: ")
+            bot.register_next_step_handler(s, tonerc1y)
+    except Exception as e:
+        bot.send_message(owner, "Invalid number\nPlease Enter a valid number: ")
+        bot.register_next_step_handler(message, tonerc)  
+        
+        
+def tonerc1y(message):
+    print(message.text)
+    try:
+        owner = message.chat.id
+        wallet = message.text
+        db_bridge.update_txid(wallet, owner) 
+        markup = types.InlineKeyboardMarkup()
+        btn1 = types.InlineKeyboardButton('Cancel', callback_data='cancel')
+        btn2 = types.InlineKeyboardButton('Confirm', callback_data='tonercc')
+        markup.add(btn1,btn2)
+        amt = db_bridge.get_amount(owner)
+        y = output('ton','ton','eth','usdt', amt)
+        print(y)
+        msg = f"""You're about to bridge *{amt} Ton* to *{y} USDT(ERC20)*
+        
+Hit the Confirm button to confirm swap
+        
+        """
+        
+        bot.send_message(owner, msg, reply_markup=markup, parse_mode="Markdown")
+    except Exception as e:
+        print(e)
+        
+        
+def tontrc(message):
+    owner = message.chat.id
+    try:
+        amt = float(message.text)
+        min = minimum('ton','ton', 'trx', 'usdt')
+        if amt < min:
+            bot.send_message(owner, "Amount Lower than Minimum bridge amount {min}\nEnter amount: ")
+            bot.register_next_step_handler(message, tontrc)
+        else:
+            db_bridge.update_amount(amt, owner)
+            s = bot.send_message(owner, "send Wallet to bridge to: ")
+            bot.register_next_step_handler(s, tontrc1y)
+    except Exception as e:
+        bot.send_message(owner, "Invalid number\nPlease Enter a valid number: ")
+        bot.register_next_step_handler(message, tontrc)  
+        
+        
+def tontrc1y(message):
+    print(message.text)
+    try:
+        owner = message.chat.id
+        wallet = message.text
+        db_bridge.update_txid(wallet, owner) 
+        markup = types.InlineKeyboardMarkup()
+        btn1 = types.InlineKeyboardButton('Cancel', callback_data='cancel')
+        btn2 = types.InlineKeyboardButton('Confirm', callback_data='tontrcc')
+        markup.add(btn1,btn2)
+        amt = db_bridge.get_amount(owner)
+        y = output('ton','ton','trx','usdt', amt)
+        print(y)
+        msg = f"""You're about to bridge *{amt} Ton* to *{y} USDT(TRC20)*
+        
+Hit the Confirm button to confirm swap
+        
+        """
+        
+        bot.send_message(owner, msg, reply_markup=markup, parse_mode="Markdown")
+    except Exception as e:
+        print(e)
         
         
 def buy_sx(message):
@@ -1633,7 +2090,7 @@ Click on the button below to confirm swap
         bot.send_message(owner, msg, 'Markdown', reply_markup=markup)
 
 
-def sellx(message):
+def sellix(message):
     owner = message.chat.id
     try:
         initial = float(message.text)
@@ -1653,12 +2110,12 @@ def sellx(message):
     slip = db_user.get_slippage(owner=owner)
     if bal > initial:
         sell(message, token, initial)
-        buy_mc = db_trades.get_buy_mc(owner, token)
+        buy_mc = 1 if db_trades.get_buy_mc(owner, token) == None else db_trades.get_buy_mc(owner,token)
         pnl = (get_mc(token)-buy_mc)/buy_mc*100
         amt = 0 if db_trades.get_buy_amt(owner, token) == None else db_trades.get_buy_amt(owner, token)
         msg = f"""💎 {name} ({symbol}): 🌐 {pool}
                 
-{'🟩' if round(pnl, 2) >=0 else '🟥'} *profit*: {round(pnl, 2)} | 💎 {round((get_mc(token)/buy_mc)*amt, 2)} Ton
+{'🟩' if round(pnl, 2) >=0 else '🟥'} *profit*: {1 if round(pnl, 2) > 10000 else round(pnl, 2)} % | 💎 {round((get_mc(token)/buy_mc)*amt, 2)} Ton
 
 💎 *CA*: `{token}` [🅲](https://tonscan.org/address/{token})
 
@@ -1731,7 +2188,7 @@ def buy_x(message):
             db_trades.update(owner,token,name, buy_mc=buy_mc, buy_amount=amt)
             msg = f"""💎 {name} ({symbol}): 🌐 {pool}
                 
-{'🟩' if round(pnl, 2) > 0.0 else '🟥'} *profit*: {round(pnl, 2)} | 💎 {round((get_mc(token)/buy_mc)*initial, 2)} Ton
+{'🟩' if round(pnl, 2) > 0.0 else '🟥'} *profit*: {1 if round(pnl, 2) > 10000 else round(pnl, 2)} % | 💎 {round((get_mc(token)/buy_mc)*initial, 2)} Ton
 
 💎 *CA*: `{token}` [🅲](https://tonscan.org/address/{token})
 

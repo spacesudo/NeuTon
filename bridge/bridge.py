@@ -80,6 +80,6 @@ def output(from_curr,from_net, to_net , to_curr, amount):
 
 
 if __name__ == "__main__":
-  x = exchange('usdt','trx','ton','ton',1,"UQDLzebYWhJaIt5YbZ5vz_glIbfqP7PxNg9V54HW3jSIhDPe")
+  x = output('ton', 'ton', 'trx', 'usdt',5)
   print(x)
   

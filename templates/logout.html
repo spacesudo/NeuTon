@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Login</title>
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='logout.css') }}"
+    />
+  </head>
+  <body>
+    <div class="container">
+      <h2>Are you sure you want to logout??</h2>
+      <div class="buttons">
+        <button>
+          <a href="{{url_for('login')}}">Yes, I want to logout </a>
+        </button>
+        <button><a href="{{url_for('welcome')}}">No, I don't</a></button>
+      </div>
+    </div>
+  </body>
+</html>

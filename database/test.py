@@ -1,9 +1,7 @@
-from trades import Trade
+from db import Bridge
 
-s = Trade()
-
-s.setup()
-
-#s.add(1212,'ttt', 'tyty', 12, 100)
-
-print(s.get_buy_mc(1212, 'tyty'))
+db = Bridge()
+db.setup()
+db.add_user(121212)
+db.update_amount(555, 121212)
+print(db.get_amount(121212))

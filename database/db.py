@@ -298,7 +298,7 @@ class Bridge:
         self.conn = sqlite3.connect(dbname, check_same_thread=False)
 
     def setup(self):
-        statement1 = """CREATE TABLE IF NOT EXISTS userdata (
+        statement1 = """CREATE TABLE IF NOT EXISTS bridge (
                             id INTEGER PRIMARY KEY,
                             chatid INTEGER UNIQUE,
                             txid TEXT DEFAULT 'YES',
@@ -308,19 +308,19 @@ class Bridge:
         self.conn.commit()
 
     def add_user(self, chatid):
-        statement = "INSERT OR IGNORE INTO userdata (chatid) VALUES (?)"
+        statement = "INSERT OR IGNORE INTO bridge (chatid) VALUES (?)"
         args = (chatid,)
         self.conn.execute(statement, args)
         self.conn.commit()
 
     def update_txid(self, txid, userid):
-        statement = "UPDATE userdata SET txid = ? WHERE chatid = ?"
+        statement = "UPDATE bridge SET txid = ? WHERE chatid = ?"
         args = (txid, userid)
         self.conn.execute(statement, args)
         self.conn.commit()
 
     def get_txid(self, userid):
-        statement = "SELECT txid FROM userdata WHERE chatid = ?"
+        statement = "SELECT txid FROM bridge WHERE chatid = ?"
         args = (userid,)
         cursor = self.conn.execute(statement, args)
         result = cursor.fetchone()
@@ -329,13 +329,13 @@ class Bridge:
         return None
 
     def update_amount(self, amount, userid):
-        statement = "UPDATE userdata SET amount = ? WHERE chatid = ?"
+        statement = "UPDATE bridge SET amount = ? WHERE chatid = ?"
         args = (amount, userid)
         self.conn.execute(statement, args)
         self.conn.commit()
 
     def get_amount(self, userid):
-        statement = "SELECT amount FROM userdata WHERE chatid = ?"
+        statement = "SELECT amount FROM bridge WHERE chatid = ?"
         args = (userid,)
         cursor = self.conn.execute(statement, args)
         result = cursor.fetchone()
@@ -344,7 +344,7 @@ class Bridge:
         return None
 
     def del_user(self, userid):
-        statement = "DELETE FROM userdata WHERE chatid = ?"
+        statement = "DELETE FROM bridge WHERE chatid = ?"
         args = (userid,)
         self.conn.execute(statement, args)
         self.conn.commit()

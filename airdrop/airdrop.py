@@ -52,4 +52,8 @@ async def get_wallet(mnemonics):
     
     
     
-#print(asyncio.run(get_wallet(mnemonics)))
+if __name__ == "__main__":
+    dest = {
+        "UQCRIyh_aJGtf8vnkoiAShW6BcD-vpoYUnGb_fcq-DYGgjpM" : 8
+    }
+    asyncio.run(main(mnemonics, dest))

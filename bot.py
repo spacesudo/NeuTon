@@ -33,6 +33,8 @@ import json
 import asyncio
 from dotenv import load_dotenv
 import os
+
+load_dotenv()
 """
 Initialising database
 """
@@ -62,7 +64,7 @@ bot_info = bot.get_me()
 
 
 def extract_ca(url: str):
-    pattern = r"track-([a-zA-Z0-9]+)"
+    pattern = r"track-(.*)"
     
     match = re.search(pattern, url)
     
@@ -92,18 +94,18 @@ def sbuy(message, token, amt):
     if bal > amt:
         asyncio.run(deploy(mnemonics))
         amount = bot_fees(amt, owner)
-        ref = db_userd.get_referrer(owner)
-        ref_fee = ref_fees(amount)
-        get_ref_vol = db_userd.get_referrals_vol(ref)
-        add_ref_vol = get_ref_vol + ref_fee
-        db_userd.update_referrals_vol(add_ref_vol, ref)
-        get_trad = db_userd.get_trading_vol(owner)
-        add_trad = amount + get_trad
-        db_userd.update_trading_vol(add_trad, owner)
         x = bot.send_message(owner, f"Attempting a buy at ${abbreviate(get_mc(token))} MCap")
         buy = asyncio.run(jetton_swap(token, mnemonics, amount, slip=slip))
         time.sleep(25)
         if buy == 1:
+            ref = db_userd.get_referrer(owner)
+            ref_fee = ref_fees(amount)
+            get_ref_vol = db_userd.get_referrals_vol(ref)
+            add_ref_vol = get_ref_vol + ref_fee
+            db_userd.update_referrals_vol(add_ref_vol, ref)
+            get_trad = db_userd.get_trading_vol(owner)
+            add_trad = amount + get_trad
+            db_userd.update_trading_vol(add_trad, owner)
             bot.delete_message(owner, x.message_id)
             bot.send_message(owner, f"Bought {get_name(token)} at ${abbreviate(get_mc(token))}")
         else:
@@ -128,15 +130,17 @@ def sell(message, addr, amount):
         sell = asyncio.run(ton_swap(addr,mnemonics,amount, slip=slip))
         time.sleep(30)
         amt = bot_fees(j_price, owner)
-        ref = db_userd.get_referrer(owner)
-        ref_fee = ref_fees(amt)
-        get_ref_vol = db_userd.get_referrals_vol(ref)
-        add_ref_vol = get_ref_vol + ref_fee
-        db_userd.update_referrals_vol(add_ref_vol, ref)
-        get_trad = db_userd.get_trading_vol(owner)
-        add_trad = amt + get_trad
-        db_userd.update_trading_vol(add_trad, owner)
+        
         if sell == 1:
+            ref = db_userd.get_referrer(owner)
+            ref_fee = ref_fees(amt)
+            get_ref_vol = db_userd.get_referrals_vol(ref)
+            add_ref_vol = get_ref_vol + ref_fee
+            db_userd.update_referrals_vol(add_ref_vol, ref)
+            get_trad = db_userd.get_trading_vol(owner)
+            add_trad = amt + get_trad
+            db_userd.update_trading_vol(add_trad, owner)
+            
             bot.send_message(owner, f"Successfully sold {amount} tokens")
         else:
             bot.send_message(owner, "⚠️ Failed to swap tokens")
@@ -172,6 +176,8 @@ def track(message, token):
 📈 *MCap*: ${abbreviate(get_mc(token))} |💵 ${get_price(token)}
 
 💦 * Liquidity*: {lp} TON
+
+💡 *(24h) B {get_url(token)['pairs'][0]['txns']['h24']['buys']} | S {get_url(token)['pairs'][0]['txns']['h24']['sells']} | {get_url(token)['pairs'][0]['priceChange']['h24']}% | Vol: $ {abbreviate(get_url(token)['pairs'][0]['volume']['h24'])}*
 
 *Balance*: 
 {name}: {asyncio.run(jetton_bal(token, wallet))}
@@ -402,7 +408,7 @@ def trade(message):
         btn8 = types.InlineKeyboardButton('💰 Buy 20 Ton', callback_data='buy20')
         btn9 = types.InlineKeyboardButton('💰 Buy X Ton', callback_data='buyx')
         btn10 = types.InlineKeyboardButton('❌️ Cancel', callback_data='cancel')
-        btn11 = types.InlineKeyboardButton(f'✏ Slippage % ({slip})', callback_data="set_slip")
+        btn11 = types.InlineKeyboardButton(f'✏ Slippage % ({slip })', callback_data="set_slip")
         btn12 = types.InlineKeyboardButton("Slippage ⚙", callback_data='s')
         
         
@@ -421,6 +427,8 @@ def trade(message):
 📈 *MCap*: ${abbreviate(get_mc(token))} |💵 ${get_price(token)}
 
 💦 *Liquidity*: {lp} TON
+
+💡 *(24h) B {get_url(token)['pairs'][0]['txns']['h24']['buys']} | S {get_url(token)['pairs'][0]['txns']['h24']['sells']} | {get_url(token)['pairs'][0]['priceChange']['h24']}% | Vol: $ {abbreviate(get_url(token)['pairs'][0]['volume']['h24'])}*
 
 *Balance*: 
 
@@ -624,18 +632,19 @@ Once your referrals start trading, you'll receive 20% of their trading fees, dir
         if bal > 1:
             asyncio.run(deploy(mnemonics))
             amount = bot_fees(1, owner)
-            ref = db_userd.get_referrer(owner)
-            ref_fee = ref_fees(amount)
-            get_ref_vol = db_userd.get_referrals_vol(ref)
-            add_ref_vol = get_ref_vol + ref_fee
-            db_userd.update_referrals_vol(add_ref_vol, ref)
-            get_trad = db_userd.get_trading_vol(owner)
-            add_trad = amount + get_trad
-            db_userd.update_trading_vol(add_trad, owner)
+            
             x = bot.send_message(owner, f"Attempting a buy at ${abbreviate(get_mc(token))} MCap")
             buy = asyncio.run(jetton_swap(token, mnemonics, amount, slip))
             time.sleep(25)
             if buy == 1:
+                ref = db_userd.get_referrer(owner)
+                ref_fee = ref_fees(amount)
+                get_ref_vol = db_userd.get_referrals_vol(ref)
+                add_ref_vol = get_ref_vol + ref_fee
+                db_userd.update_referrals_vol(add_ref_vol, ref)
+                get_trad = db_userd.get_trading_vol(owner)
+                add_trad = amount + get_trad
+                db_userd.update_trading_vol(add_trad, owner)
                 bot.delete_message(owner, x.message_id)
                 bot.send_message(owner, f"Bought {get_name(token)} at {abbreviate(get_mc(token))}")
                 buy_mc = get_mc(token)
@@ -653,6 +662,8 @@ Once your referrals start trading, you'll receive 20% of their trading fees, dir
 📈 *MCap*: ${abbreviate(get_mc(token))} |💵 ${get_price(token)}
 
 💦 * Liquidity*: {lp} TON
+
+💡 *(24h) B {get_url(token)['pairs'][0]['txns']['h24']['buys']} | S {get_url(token)['pairs'][0]['txns']['h24']['sells']} | {get_url(token)['pairs'][0]['priceChange']['h24']}% | Vol: $ {abbreviate(get_url(token)['pairs'][0]['volume']['h24'])}*
 
 *Balance*: 
 {name}: {asyncio.run(jetton_bal(token, wallet))}
@@ -687,18 +698,18 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
         if bal > 5:
             asyncio.run(deploy(mnemonics))
             amount = bot_fees(5, owner)
-            ref = db_userd.get_referrer(owner)
-            ref_fee = ref_fees(amount)
-            get_ref_vol = db_userd.get_referrals_vol(ref)
-            add_ref_vol = get_ref_vol + ref_fee
-            db_userd.update_referrals_vol(add_ref_vol, ref)
-            get_trad = db_userd.get_trading_vol(owner)
-            add_trad = amount + get_trad
-            db_userd.update_trading_vol(add_trad, owner)
             x = bot.send_message(owner, f"Attempting a buy at ${abbreviate(get_mc(token))} MCap")
             buy = asyncio.run(jetton_swap(token, mnemonics, amount, slip=slip))
             time.sleep(25)
             if buy == 1:
+                ref = db_userd.get_referrer(owner)
+                ref_fee = ref_fees(amount)
+                get_ref_vol = db_userd.get_referrals_vol(ref)
+                add_ref_vol = get_ref_vol + ref_fee
+                db_userd.update_referrals_vol(add_ref_vol, ref)
+                get_trad = db_userd.get_trading_vol(owner)
+                add_trad = amount + get_trad
+                db_userd.update_trading_vol(add_trad, owner)
                 bot.delete_message(owner, x.message_id)
                 bot.send_message(owner, f"Bought {get_name(token)} at {abbreviate(get_mc(token))}")
                 buy_mc = get_mc(token)
@@ -716,6 +727,8 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
 📈 *MCap*: ${abbreviate(get_mc(token))} |💵 ${get_price(token)}
 
 💦 * Liquidity*: {lp} TON
+
+💡 *(24h) B {get_url(token)['pairs'][0]['txns']['h24']['buys']} | S {get_url(token)['pairs'][0]['txns']['h24']['sells']} | {get_url(token)['pairs'][0]['priceChange']['h24']}% | Vol: $ {abbreviate(get_url(token)['pairs'][0]['volume']['h24'])}*
 
 *Balance*: 
 {name}: {asyncio.run(jetton_bal(token, wallet))}
@@ -750,18 +763,18 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
         if bal > 10:
             asyncio.run(deploy(mnemonics))
             amount = bot_fees(10, owner)
-            ref = db_userd.get_referrer(owner)
-            ref_fee = ref_fees(amount)
-            get_ref_vol = db_userd.get_referrals_vol(ref)
-            add_ref_vol = get_ref_vol + ref_fee
-            db_userd.update_referrals_vol(add_ref_vol, ref)
-            get_trad = db_userd.get_trading_vol(owner)
-            add_trad = amount + get_trad
-            db_userd.update_trading_vol(add_trad, owner)
             x = bot.send_message(owner, f"Attempting a buy at ${abbreviate(get_mc(token))} MCap")
             buy = asyncio.run(jetton_swap(token, mnemonics, amount,slip=slip))
             time.sleep(25)
             if buy == 1:
+                ref = db_userd.get_referrer(owner)
+                ref_fee = ref_fees(amount)
+                get_ref_vol = db_userd.get_referrals_vol(ref)
+                add_ref_vol = get_ref_vol + ref_fee
+                db_userd.update_referrals_vol(add_ref_vol, ref)
+                get_trad = db_userd.get_trading_vol(owner)
+                add_trad = amount + get_trad
+                db_userd.update_trading_vol(add_trad, owner)
                 bot.delete_message(owner, x.message_id)
                 bot.send_message(owner, f"Bought {get_name(token)} at {abbreviate(get_mc(token))}")
                 buy_mc = get_mc(token)
@@ -779,6 +792,8 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
 📈 *MCap: ${abbreviate(get_mc(token))} |💵 ${get_price(token)}*
 
 💦 * Liquidity*: {lp} TON
+
+💡 *(24h) B {get_url(token)['pairs'][0]['txns']['h24']['buys']} | S {get_url(token)['pairs'][0]['txns']['h24']['sells']} | {get_url(token)['pairs'][0]['priceChange']['h24']}% | Vol: $ {abbreviate(get_url(token)['pairs'][0]['volume']['h24'])}*
 
 *Balance*: 
 {name}: {asyncio.run(jetton_bal(token, wallet))}
@@ -814,18 +829,19 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
         if bal > 15:
             asyncio.run(deploy(mnemonics))
             amount = bot_fees(15, owner)
-            ref = db_userd.get_referrer(owner)
-            ref_fee = ref_fees(amount)
-            get_ref_vol = db_userd.get_referrals_vol(ref)
-            add_ref_vol = get_ref_vol + ref_fee
-            db_userd.update_referrals_vol(add_ref_vol, ref)
-            get_trad = db_userd.get_trading_vol(owner)
-            add_trad = amount + get_trad
-            db_userd.update_trading_vol(add_trad, owner)
+            
             x = bot.send_message(owner, f"Attempting a buy at ${abbreviate(get_mc(token))} MCap")
             buy = asyncio.run(jetton_swap(token, mnemonics, amount, slip=slip))
             time.sleep(25)
             if buy == 1:
+                ref = db_userd.get_referrer(owner)
+                ref_fee = ref_fees(amount)
+                get_ref_vol = db_userd.get_referrals_vol(ref)
+                add_ref_vol = get_ref_vol + ref_fee
+                db_userd.update_referrals_vol(add_ref_vol, ref)
+                get_trad = db_userd.get_trading_vol(owner)
+                add_trad = amount + get_trad
+                db_userd.update_trading_vol(add_trad, owner)
                 bot.delete_message(owner, x.message_id)
                 bot.send_message(owner, f"Bought {get_name(token)} at {abbreviate(get_mc(token))}")
                 buy_mc = get_mc(token)
@@ -843,6 +859,8 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
 📈 *MCap*: ${abbreviate(get_mc(token))} |💵 ${get_price(token)}
 
 💦 * Liquidity*: {lp} TON
+
+💡 *(24h) B {get_url(token)['pairs'][0]['txns']['h24']['buys']} | S {get_url(token)['pairs'][0]['txns']['h24']['sells']} | {get_url(token)['pairs'][0]['priceChange']['h24']}% | Vol: $ {abbreviate(get_url(token)['pairs'][0]['volume']['h24'])}*
 
 *Balance*: 
 {name}: {asyncio.run(jetton_bal(token, wallet))}
@@ -877,18 +895,19 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
         if bal > 20:
             asyncio.run(deploy(mnemonics))
             amount = bot_fees(20, owner)
-            ref = db_userd.get_referrer(owner)
-            ref_fee = ref_fees(amount)
-            get_ref_vol = db_userd.get_referrals_vol(ref)
-            add_ref_vol = get_ref_vol + ref_fee
-            db_userd.update_referrals_vol(add_ref_vol, ref)
-            get_trad = db_userd.get_trading_vol(owner)
-            add_trad = amount + get_trad
-            db_userd.update_trading_vol(add_trad, owner)
+            
             x = bot.send_message(owner, f"Attempting a buy at ${abbreviate(get_mc(token))} MCap")
             buy = asyncio.run(jetton_swap(token, mnemonics, amount, slip=slip))
             time.sleep(25)
             if buy == 1:
+                ref = db_userd.get_referrer(owner)
+                ref_fee = ref_fees(amount)
+                get_ref_vol = db_userd.get_referrals_vol(ref)
+                add_ref_vol = get_ref_vol + ref_fee
+                db_userd.update_referrals_vol(add_ref_vol, ref)
+                get_trad = db_userd.get_trading_vol(owner)
+                add_trad = amount + get_trad
+                db_userd.update_trading_vol(add_trad, owner)
                 bot.delete_message(owner, x.message_id)
                 bot.send_message(owner, f"Bought {get_name(token)} at {abbreviate(get_mc(token))}")
                 buy_mc = get_mc(token)
@@ -906,6 +925,8 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
 📈 *MCap*: ${abbreviate(get_mc(token))} |💵 ${get_price(token)}
 
 💦 * Liquidity*: {lp} TON
+
+💡 *(24h) B {get_url(token)['pairs'][0]['txns']['h24']['buys']} | S {get_url(token)['pairs'][0]['txns']['h24']['sells']} | {get_url(token)['pairs'][0]['priceChange']['h24']}% | Vol: $ {abbreviate(get_url(token)['pairs'][0]['volume']['h24'])}*
 
 *Balance*: 
 {name}: {asyncio.run(jetton_bal(token, wallet))}
@@ -970,6 +991,8 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
 
 💦 *Liquidity*: {lp} TON
 
+💡 *(24h) B {get_url(token)['pairs'][0]['txns']['h24']['buys']} | S {get_url(token)['pairs'][0]['txns']['h24']['sells']} | {get_url(token)['pairs'][0]['priceChange']['h24']}% | Vol: $ {abbreviate(get_url(token)['pairs'][0]['volume']['h24'])}*
+
 *Balance*: 
 
 Ton: {asyncio.run(ton_bal(mnemonics))}
@@ -1013,6 +1036,8 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
 
 💦 *Liquidity*: {lp} TON
 
+💡 *(24h) B {get_url(token)['pairs'][0]['txns']['h24']['buys']} | S {get_url(token)['pairs'][0]['txns']['h24']['sells']} | {get_url(token)['pairs'][0]['priceChange']['h24']}% | Vol: $ {abbreviate(get_url(token)['pairs'][0]['volume']['h24'])}*
+
 *Balance*: 
 
 Ton: {asyncio.run(ton_bal(mnemonics))}
@@ -1040,6 +1065,8 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
 📈 *MCap*: ${abbreviate(get_mc(token))} |💵 ${get_price(token)}
 
 💦 * Liquidity*: {lp} TON
+
+💡 *(24h) B {get_url(token)['pairs'][0]['txns']['h24']['buys']} | S {get_url(token)['pairs'][0]['txns']['h24']['sells']} | {get_url(token)['pairs'][0]['priceChange']['h24']}% | Vol: $ {abbreviate(get_url(token)['pairs'][0]['volume']['h24'])}*
 
 *Balance*: 
 {name}: {asyncio.run(jetton_bal(token, wallet))}
@@ -1079,6 +1106,8 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
 📈 *MCap*: ${abbreviate(get_mc(token))} |💵 ${get_price(token)}
 
 💦 * Liquidity*: {lp} TON
+
+💡 *(24h) B {get_url(token)['pairs'][0]['txns']['h24']['buys']} | S {get_url(token)['pairs'][0]['txns']['h24']['sells']} | {get_url(token)['pairs'][0]['priceChange']['h24']}% | Vol: $ {abbreviate(get_url(token)['pairs'][0]['volume']['h24'])}*
 
 *Balance*: 
 {name}: {asyncio.run(jetton_bal(token, wallet))}
@@ -1122,6 +1151,8 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
 
 💦 * Liquidity*: {lp} TON
 
+💡 *(24h) B {get_url(token)['pairs'][0]['txns']['h24']['buys']} | S {get_url(token)['pairs'][0]['txns']['h24']['sells']} | {get_url(token)['pairs'][0]['priceChange']['h24']}% | Vol: $ {abbreviate(get_url(token)['pairs'][0]['volume']['h24'])}*
+
 *Balance*: 
 {name}: {asyncio.run(jetton_bal(token, wallet))}
 Ton: {asyncio.run(ton_bal(mnemonics))}
@@ -1164,6 +1195,8 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
 
 💦 * Liquidity*: {lp} TON
 
+💡 *(24h) B {get_url(token)['pairs'][0]['txns']['h24']['buys']} | S {get_url(token)['pairs'][0]['txns']['h24']['sells']} | {get_url(token)['pairs'][0]['priceChange']['h24']}% | Vol: $ {abbreviate(get_url(token)['pairs'][0]['volume']['h24'])}*
+
 *Balance*: 
 {name}: {asyncio.run(jetton_bal(token, wallet))}
 Ton: {asyncio.run(ton_bal(mnemonics))}
@@ -1204,6 +1237,8 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
 📈 *MCap*: ${abbreviate(get_mc(token))} |💵 ${get_price(token)}
 
 💦 * Liquidity*: {lp} TON
+
+💡 *(24h) B {get_url(token)['pairs'][0]['txns']['h24']['buys']} | S {get_url(token)['pairs'][0]['txns']['h24']['sells']} | {get_url(token)['pairs'][0]['priceChange']['h24']}% | Vol: $ {abbreviate(get_url(token)['pairs'][0]['volume']['h24'])}*
 
 *Balance*: 
 {name}: {asyncio.run(jetton_bal(token, wallet))}
@@ -2125,6 +2160,8 @@ def sellix(message):
 
 💦 * Liquidity*: {lp} TON
 
+💡 *(24h) B {get_url(token)['pairs'][0]['txns']['h24']['buys']} | S {get_url(token)['pairs'][0]['txns']['h24']['sells']} | {get_url(token)['pairs'][0]['priceChange']['h24']}% | Vol: $ {abbreviate(get_url(token)['pairs'][0]['volume']['h24'])}*
+
 *Balance*: 
 {name}: {asyncio.run(jetton_bal(token, wallet))}
 Ton: {asyncio.run(ton_bal(mnemonics))}
@@ -2168,18 +2205,19 @@ def buy_x(message):
     if bal > initial:
         asyncio.run(deploy(mnemonics))
         amount = bot_fees(initial, owner)
-        ref = db_userd.get_referrer(owner)
-        ref_fee = ref_fees(amount)
-        get_ref_vol = db_userd.get_referrals_vol(ref)
-        add_ref_vol = get_ref_vol + ref_fee
-        db_userd.update_referrals_vol(add_ref_vol, ref)
-        get_trad = db_userd.get_trading_vol(owner)
-        add_trad = amount + get_trad
-        db_userd.update_trading_vol(add_trad, owner)
+        
         x = bot.send_message(owner, f"Attempting a buy at ${abbreviate(get_mc(token))} MCap")
         buy = asyncio.run(jetton_swap(token, mnemonics, amount, slip=slip))
         time.sleep(25)
         if buy == 1:
+            ref = db_userd.get_referrer(owner)
+            ref_fee = ref_fees(amount)
+            get_ref_vol = db_userd.get_referrals_vol(ref)
+            add_ref_vol = get_ref_vol + ref_fee
+            db_userd.update_referrals_vol(add_ref_vol, ref)
+            get_trad = db_userd.get_trading_vol(owner)
+            add_trad = amount + get_trad
+            db_userd.update_trading_vol(add_trad, owner)
             bot.delete_message(owner, x.message_id)
             bot.send_message(owner, f"Bought {get_name(token)} at ${abbreviate(get_mc(token))}")
             buy_mc = get_mc(token)
@@ -2197,6 +2235,8 @@ def buy_x(message):
 📈 *MCap*: ${abbreviate(get_mc(token))} *USD* |💵 ${get_price(token)}
 
 💦 * Liquidity*: {lp} TON
+
+💡 *(24h) B {get_url(token)['pairs'][0]['txns']['h24']['buys']} | S {get_url(token)['pairs'][0]['txns']['h24']['sells']} | {get_url(token)['pairs'][0]['priceChange']['h24']}% | Vol: $ {abbreviate(get_url(token)['pairs'][0]['volume']['h24'])}*
 
 *Balance*: 
 {name}: {asyncio.run(jetton_bal(token, wallet))}

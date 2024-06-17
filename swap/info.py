@@ -94,4 +94,16 @@ def get_pair(addr: str):
         return "failed to connect try again later"
     
     
-#print(get_pool('EQDLBxmFug-g-c13i6Ur6ldoEbT7mT9ZtfoQNf7Alli-A19Q'))
+def get_pairp(addr: str):
+    url = f"https://api.dexscreener.com/latest/dex/tokens/{addr}"
+    response = requests.get(url)
+    if response.status_code == 200:
+        mc = response.json()
+        return mc
+    else:
+        return "failed to connect try again later"
+    
+    
+#print(get_pairp('EQDLBxmFug-g-c13i6Ur6ldoEbT7mT9ZtfoQNf7Alli-A19Q'))
+
+#print(get_url("EQBlqsm144Dq6SjbPI4jjZvA1hqTIP3CvHovbIfW_t-SCALE")['pairs'][0]['txns']['h24']['buys'])

@@ -4,6 +4,8 @@ from dotenv import load_dotenv
 import os
 from pytoniq_core import Address
 
+load_dotenv()
+
 api = os.getenv('TON_API')
 
 

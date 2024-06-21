@@ -2,7 +2,7 @@ from pytoniq import LiteBalancer, WalletV4R2
 import asyncio
 
 async def send_ton(dest: str, amount: float, mnemonics: list):
-    provider = LiteBalancer.from_mainnet_config(1)
+    provider = LiteBalancer.from_mainnet_config(2)
     await provider.start_up()
 
     try:

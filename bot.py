@@ -35,6 +35,7 @@ from dotenv import load_dotenv
 import os
 
 load_dotenv()
+
 """
 Initialising database
 """
@@ -72,6 +73,10 @@ def extract_ca(url: str):
         return match.group(1)
     else: 
         return None
+    
+def pnl_img(text):
+    url = f"https://textoverimage.moesif.com/image?image_url=https%3A%2F%2Fres.cloudinary.com%2Fdb1owt5ev%2Fimage%2Fupload%2Fv1718973675%2Fgmfrezafjuq16fq3vwfr.jpg&text={text}25&text_color={'20ee19ff' if text > 0 else 'f7190dff'}&text_size=128&margin=&y_align=middle&x_align=right"
+    return url
 
 def abbreviate(x):
     abbreviations = ["", "K", "M", "B", "T", "Qd", "Qn", "Sx", "Sp", "O", "N", 
@@ -189,14 +194,17 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
         btn1 = types.InlineKeyboardButton("Buy 5 Ton ", callback_data='buys5')
         btn12 = types.InlineKeyboardButton("Buy 10 Ton ", callback_data='buys10')
         btn13 = types.InlineKeyboardButton("Buy X ✏", callback_data='buysx')
-        btn11 = types.InlineKeyboardButton(f'✏ Slippage % ({slip})', callback_data="set_slip")
+        btn11 = types.InlineKeyboardButton(f'✏ Slippage % ({slip * 100})', callback_data="set_slip")
         btn2 = types.InlineKeyboardButton("Sell 25%", callback_data='sell25')
         btn3 = types.InlineKeyboardButton("Sell 50%", callback_data='sell50')
         btn4 = types.InlineKeyboardButton("Sell 75%", callback_data='sell75')
         btn5 = types.InlineKeyboardButton("Sell 100% ", callback_data='sell100')
         btn6 = types.InlineKeyboardButton("Sell X token ", callback_data='sellx')
         btn7 = types.InlineKeyboardButton("🔃 Refresh", callback_data='sellrefresh1')
-        markup.add(btn1,btn12,btn13,btn11,btn2,btn3,btn4,btn5,btn6,btn7)
+        btn14 = types.InlineKeyboardButton('PnL', callback_data='pnl')
+        markup.add(btn1,btn12,btn13)
+        markup.add(btn11, row_width=1)
+        markup.add(btn2,btn3,btn4,btn5,btn6,btn7,btn14)
         bot.send_message(owner, msg, parse_mode='Markdown', reply_markup=markup, disable_web_page_preview=True)
         #bot.edit_message_text(chat_id=call.message.chat.id, disable_web_page_preview=True ,message_id=call.message.message_id, text= msg, parse_mode='Markdown', reply_markup=markup)
     else:
@@ -341,8 +349,113 @@ Pass Phrase:
 @bot.message_handler(commands=['support'])
 def support(message):
     bot.reply_to(message, "For help or support join the official support community @zerohexdave")
+
+@bot.message_handler(commands=['referrals'])
+def ree(message):
+    owner = message.chat.id
+    markup = types.InlineKeyboardMarkup()
+    btn = types.InlineKeyboardButton('❌️ Close', callback_data='cancel')
+    markup.add(btn)
+    msg = f"""*Referral Program*
+        
+Join our Referral program and earn 20% From your referrers trading fees.
+        
+How It Works:
+
+Join our platform and get your unique referral link. 
+
+`https://t.me/{bot_info.username}?start={owner}`
+
+Invite others to trade with us by sharing your referral link via social media, email, or word of mouth.
+
+Once your referrals start trading, you'll receive 20% of their trading fees, directly credited to your wallet.
+
+*Referral Stats*
+
+*Referrals*: {db_userd.get_referrals(owner)}
+
+*Rewards*: {round(db_userd.get_referrals_vol(owner), 2)}
+"""
+
+    bot.send_message(owner, msg, 'Markdown',reply_markup=markup)
+
+@bot.message_handler(commands=['positions'])
+def pos(message):
+    owner = message.chat.id 
+    wallet = db_user.get_wallet(owner)
+    msg = "Open Positions\n\n"
+    pos = asyncio.run(position.main(wallet))
+    for i in pos:
+            msg += f"[${i['jetton']['name']}](https://t.me/{bot_info.username}?start=track-{position.str_addr(i['jetton']['address'])}) *$ 0.0 Ton *\n"
+    markup = types.InlineKeyboardMarkup()
+    btn= types.InlineKeyboardButton('❌️ Close', callback_data="cancel")
+    markup.add(btn)
+    bot.send_message(owner, msg, parse_mode='Markdown', reply_markup=markup)
     
     
+@bot.message_handler(commands=['bridge'])
+def brid(message):
+        owner = message.chat.id
+        markup = types.InlineKeyboardMarkup(row_width=1)
+        btn1 = types.InlineKeyboardButton('Ton to others', callback_data='tonbridge')
+        btn2 = types.InlineKeyboardButton('ETH --> TON', callback_data='ethton')
+        btn3 = types.InlineKeyboardButton('SOL --> TON', callback_data='solton')
+        btn4 = types.InlineKeyboardButton('BASE --> TON', callback_data='baseton')
+        btn5 = types.InlineKeyboardButton('BTC --> TON', callback_data='btcton')
+        btn6 = types.InlineKeyboardButton('BNB --> TON', callback_data='bnbton')
+        btn7 = types.InlineKeyboardButton('USDT(ERC20) --> TON', callback_data='ercton')
+        btn8 = types.InlineKeyboardButton('USDT(TRC20) --> TON', callback_data='trcton')
+        btn9 = types.InlineKeyboardButton('Cancel', callback_data='cancel')
+        
+        msg = """
+        Bridge from one network to Ton using the built in Bridge Mode
+        
+Select the chain you're bridging from and follow the prompt after
+
+Tap on *Ton to others* To bridge from Ton to other chains         
+
+        """
+        
+        markup.add(btn1, btn2,btn3,btn4,btn5,btn6,btn7,btn8,btn9)
+        
+        bot.send_message(owner, msg, 'Markdown', reply_markup=markup)
+          
+
+@bot.message_handler(commands=['airdrop'])
+def airdroped(message):
+    owner = message.chat.id
+    mnemonics = eval(decrypt(db_user.get_mnemonics(owner)))
+    msg = f"""
+
+Easily transfer tokens to up to 256 TON addresses, each with a different amount.
+
+
+⚠️ Ensure your TON Wallet has at least 2 TON to cover both Bot Fees (1 TON) and Network Fees.
+Your airdrop wallet for this operation is:
+`{asyncio.run(airdrop.get_wallet(mnemonics))}` (same mnemonics as your bot wallet).
+
+⚠️ Make sure all tokens are sent to the designated wallet 
+`{asyncio.run(airdrop.get_wallet(mnemonics))}` 
+
+⚠️ before proceeding to avoid errors and unnecessary bot fees.
+Send the wallet addresses and corresponding amounts, separated by commas, as shown in the example below. Ensure the list contains fewer than 256 addresses.
+Example:
+
+```
+address1, amount
+address2, amount
+address3, amount
+```
+
+Click the button below to continue.
+        """
+    markup = types.InlineKeyboardMarkup()
+    btn1 = types.InlineKeyboardButton("✅️ Continue", callback_data='startmass')
+    btn2 = types.InlineKeyboardButton('❌️ Cancel', callback_data='cancel')
+        
+    markup.add(btn1,btn2)
+    bot.send_message(owner, msg, 'Markdown', reply_markup=markup)
+
 @bot.message_handler(commands=['withdraw'])
 def withdraw(message):
     bot.reply_to(message, "Reply to this message with the wallet address to withdraw to and ton amount seperated by comma\nExample: WITHDRAW-WALLET, 10")
@@ -408,7 +521,7 @@ def trade(message):
         btn8 = types.InlineKeyboardButton('💰 Buy 20 Ton', callback_data='buy20')
         btn9 = types.InlineKeyboardButton('💰 Buy X Ton', callback_data='buyx')
         btn10 = types.InlineKeyboardButton('❌️ Cancel', callback_data='cancel')
-        btn11 = types.InlineKeyboardButton(f'✏ Slippage % ({slip })', callback_data="set_slip")
+        btn11 = types.InlineKeyboardButton(f'✏ Slippage % ({slip * 100})', callback_data="set_slip")
         btn12 = types.InlineKeyboardButton("Slippage ⚙", callback_data='s')
         
         
@@ -478,6 +591,16 @@ Balance: *{asyncio.run(ton_bal(mnemonics))} Ton*
         
         bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=msg, reply_markup=new_markup, parse_mode='Markdown')
     
+    
+    elif call.data == 'pnl':
+        amt = db_trades.get_buy_amt(owner, token)
+        buy_mc = db_trades.get_buy_mc(owner, token)
+        pnl = (get_mc(token)-buy_mc)/buy_mc*100
+        
+        data = pnl_img(pnl)
+        
+        bot.send_photo(owner, data)
+        
     
     elif call.data =='wwithdraw':
         withdraw(call.message)
@@ -616,7 +739,7 @@ Once your referrals start trading, you'll receive 20% of their trading fees, dir
 
 *Referrals*: {db_userd.get_referrals(owner)}
 
-*Rewards*: {db_userd.get_referrals_vol(owner)}
+*Rewards*: {round(db_userd.get_referrals_vol(owner), 2)}
 """
 
         bot.send_message(owner, msg, 'Markdown',reply_markup=markup)
@@ -675,14 +798,17 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
                 btn1 = types.InlineKeyboardButton("Buy 5 Ton ", callback_data='buys5')
                 btn12 = types.InlineKeyboardButton("Buy 10 Ton ", callback_data='buys10')
                 btn13 = types.InlineKeyboardButton("Buy X ✏", callback_data='buysx')
-                btn11 = types.InlineKeyboardButton(f'✏ Slippage % ({slip})', callback_data="set_slip")
+                btn11 = types.InlineKeyboardButton(f'✏ Slippage % ({slip * 100})', callback_data="set_slip")
                 btn2 = types.InlineKeyboardButton("Sell 25%", callback_data='sell25')
                 btn3 = types.InlineKeyboardButton("Sell 50%", callback_data='sell50')
                 btn4 = types.InlineKeyboardButton("Sell 75%", callback_data='sell75')
                 btn5 = types.InlineKeyboardButton("Sell 100% ", callback_data='sell100')
                 btn6 = types.InlineKeyboardButton("Sell X token ", callback_data='sellx')
                 btn7 = types.InlineKeyboardButton("🔃 Refresh", callback_data='sellrefresh')
-                markup.add(btn1,btn12,btn13,btn11,btn2,btn3,btn4,btn5,btn6,btn7)
+                btn14 = types.InlineKeyboardButton('PnL', callback_data='pnl')
+                markup.add(btn1,btn12,btn13)
+                markup.add(btn11, row_width=1)
+                markup.add(btn2,btn3,btn4,btn5,btn6,btn7,btn14)
                 bot.edit_message_text(chat_id=call.message.chat.id, disable_web_page_preview= True,message_id=call.message.message_id, text= msg, parse_mode='Markdown', reply_markup=markup)
                 
             else:
@@ -740,14 +866,17 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
                 btn1 = types.InlineKeyboardButton("Buy 5 Ton ", callback_data='buys5')
                 btn12 = types.InlineKeyboardButton("Buy 10 Ton ", callback_data='buys10')
                 btn13 = types.InlineKeyboardButton("Buy X ✏", callback_data='buysx')
-                btn11 = types.InlineKeyboardButton(f'✏ Slippage % ({slip})', callback_data="set_slip")
+                btn11 = types.InlineKeyboardButton(f'✏ Slippage % ({slip * 100})', callback_data="set_slip")
                 btn2 = types.InlineKeyboardButton("Sell 25%", callback_data='sell25')
                 btn3 = types.InlineKeyboardButton("Sell 50%", callback_data='sell50')
                 btn4 = types.InlineKeyboardButton("Sell 75%", callback_data='sell75')
                 btn5 = types.InlineKeyboardButton("Sell 100% ", callback_data='sell100')
                 btn6 = types.InlineKeyboardButton("Sell X token ", callback_data='sellx')
                 btn7 = types.InlineKeyboardButton("🔃 Refresh", callback_data='sellrefresh')
-                markup.add(btn1,btn12,btn13,btn11,btn2,btn3,btn4,btn5,btn6,btn7)
+                btn14 = types.InlineKeyboardButton('PnL', callback_data='pnl')
+                markup.add(btn1,btn12,btn13)
+                markup.add(btn11, row_width=1)
+                markup.add(btn2,btn3,btn4,btn5,btn6,btn7,btn14)                
                 bot.edit_message_text(chat_id=call.message.chat.id, disable_web_page_preview= True ,message_id=call.message.message_id, text= msg, parse_mode='Markdown', reply_markup=markup)
                 
             else:
@@ -805,14 +934,17 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
                 btn1 = types.InlineKeyboardButton("Buy 5 Ton ", callback_data='buys5')
                 btn12 = types.InlineKeyboardButton("Buy 10 Ton ", callback_data='buys10')
                 btn13 = types.InlineKeyboardButton("Buy X ✏", callback_data='buysx')
-                btn11 = types.InlineKeyboardButton(f'✏ Slippage % ({slip})', callback_data="set_slip")
+                btn11 = types.InlineKeyboardButton(f'✏ Slippage % ({slip * 100})', callback_data="set_slip")
                 btn2 = types.InlineKeyboardButton("Sell 25%", callback_data='sell25')
                 btn3 = types.InlineKeyboardButton("Sell 50%", callback_data='sell50')
                 btn4 = types.InlineKeyboardButton("Sell 75%", callback_data='sell75')
                 btn5 = types.InlineKeyboardButton("Sell 100% ", callback_data='sell100')
                 btn6 = types.InlineKeyboardButton("Sell X token ", callback_data='sellx')
                 btn7 = types.InlineKeyboardButton("🔃 Refresh", callback_data='sellrefresh')
-                markup.add(btn1,btn12,btn13,btn11,btn2,btn3,btn4,btn5,btn6,btn7)
+                btn14 = types.InlineKeyboardButton('PnL', callback_data='pnl')
+                markup.add(btn1,btn12,btn13)
+                markup.add(btn11, row_width=1)
+                markup.add(btn2,btn3,btn4,btn5,btn6,btn7,btn14)
                 bot.edit_message_text(chat_id=call.message.chat.id, disable_web_page_preview=True ,message_id=call.message.message_id, text= msg, parse_mode='Markdown', reply_markup=markup)
                 
             else:
@@ -872,14 +1004,17 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
                 btn1 = types.InlineKeyboardButton("Buy 5 Ton ", callback_data='buys5')
                 btn12 = types.InlineKeyboardButton("Buy 10 Ton ", callback_data='buys10')
                 btn13 = types.InlineKeyboardButton("Buy X ✏", callback_data='buysx')
-                btn11 = types.InlineKeyboardButton(f'✏ Slippage % ({slip})', callback_data="set_slip")
+                btn11 = types.InlineKeyboardButton(f'✏ Slippage % ({slip * 100})', callback_data="set_slip")
                 btn2 = types.InlineKeyboardButton("Sell 25%", callback_data='sell25')
                 btn3 = types.InlineKeyboardButton("Sell 50%", callback_data='sell50')
                 btn4 = types.InlineKeyboardButton("Sell 75%", callback_data='sell75')
                 btn5 = types.InlineKeyboardButton("Sell 100% ", callback_data='sell100')
                 btn6 = types.InlineKeyboardButton("Sell X token ", callback_data='sellx')
                 btn7 = types.InlineKeyboardButton("🔃 Refresh", callback_data='sellrefresh')
-                markup.add(btn1,btn12,btn13,btn11,btn2,btn3,btn4,btn5,btn6,btn7)
+                btn14 = types.InlineKeyboardButton('PnL', callback_data='pnl')
+                markup.add(btn1,btn12,btn13)
+                markup.add(btn11, row_width=1)
+                markup.add(btn2,btn3,btn4,btn5,btn6,btn7,btn14)
                 bot.edit_message_text(chat_id=call.message.chat.id,disable_web_page_preview= True ,message_id=call.message.message_id, text= msg, parse_mode='Markdown', reply_markup=markup)
                 
             else:
@@ -938,14 +1073,17 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
                 btn1 = types.InlineKeyboardButton("Buy 5 Ton ", callback_data='buys5')
                 btn12 = types.InlineKeyboardButton("Buy 10 Ton ", callback_data='buys10')
                 btn13 = types.InlineKeyboardButton("Buy X ✏", callback_data='buysx')
-                btn11 = types.InlineKeyboardButton(f'✏ Slippage % ({slip})', callback_data="set_slip")
+                btn11 = types.InlineKeyboardButton(f'✏ Slippage % ({slip * 100})', callback_data="set_slip")
                 btn2 = types.InlineKeyboardButton("Sell 25%", callback_data='sell25')
                 btn3 = types.InlineKeyboardButton("Sell 50%", callback_data='sell50')
                 btn4 = types.InlineKeyboardButton("Sell 75%", callback_data='sell75')
                 btn5 = types.InlineKeyboardButton("Sell 100% ", callback_data='sell100')
                 btn6 = types.InlineKeyboardButton("Sell X token ", callback_data='sellx')
                 btn7 = types.InlineKeyboardButton("🔃 Refresh", callback_data='sellrefresh')
-                markup.add(btn1,btn12,btn13,btn11,btn2,btn3,btn4,btn5,btn6,btn7)
+                btn14 = types.InlineKeyboardButton('PnL', callback_data='pnl')
+                markup.add(btn1,btn12,btn13)
+                markup.add(btn11, row_width=1)
+                markup.add(btn2,btn3,btn4,btn5,btn6,btn7,btn14)
                 bot.edit_message_text(chat_id=call.message.chat.id, disable_web_page_preview=True ,message_id=call.message.message_id, text= msg, parse_mode='Markdown', reply_markup=markup)
                 
             else:
@@ -973,7 +1111,7 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
         btn8 = types.InlineKeyboardButton('💰 Buy 20 Ton', callback_data='buy20')
         btn9 = types.InlineKeyboardButton('💰 Buy X Ton', callback_data='buyx')
         btn10 = types.InlineKeyboardButton('❌️ cancel', callback_data='cancel')
-        btn11 = types.InlineKeyboardButton(f'✏ Slippage % ({slip})', callback_data="set_slip")
+        btn11 = types.InlineKeyboardButton(f'✏ Slippage % ({slip * 100})', callback_data="set_slip")
         
         markup.add(btn2,btn1,btn3)
         markup.add(btn11)
@@ -1018,7 +1156,7 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
         btn8 = types.InlineKeyboardButton('💰 Buy 20 Ton', callback_data='buy20')
         btn9 = types.InlineKeyboardButton('💰 Buy X Ton', callback_data='buyx')
         btn10 = types.InlineKeyboardButton('❌️ Cancel', callback_data='cancel')
-        btn11 = types.InlineKeyboardButton(f'✏ Slippage % ({slip})', callback_data="set_slip")
+        btn11 = types.InlineKeyboardButton(f'✏ Slippage % ({slip * 100})', callback_data="set_slip")
         
         markup.add(btn2,btn1,btn3)
         markup.add(btn11)
@@ -1078,14 +1216,17 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
         btn1 = types.InlineKeyboardButton("Buy 5 Ton ", callback_data='buys5')
         btn12 = types.InlineKeyboardButton("Buy 10 Ton ", callback_data='buys10')
         btn13 = types.InlineKeyboardButton("Buy X ✏", callback_data='buysx')
-        btn11 = types.InlineKeyboardButton(f'✏ Slippage % ({slip})', callback_data="set_slip")
+        btn11 = types.InlineKeyboardButton(f'✏ Slippage % ({slip * 100})', callback_data="set_slip")
         btn2 = types.InlineKeyboardButton("Sell 25%", callback_data='sell25')
         btn3 = types.InlineKeyboardButton("Sell 50%", callback_data='sell50')
         btn4 = types.InlineKeyboardButton("Sell 75%", callback_data='sell75')
         btn5 = types.InlineKeyboardButton("Sell 100% ", callback_data='sell100')
         btn6 = types.InlineKeyboardButton("Sell X token ", callback_data='sellx')
         btn7 = types.InlineKeyboardButton("🔃 Refresh", callback_data='sellrefresh1')
-        markup.add(btn1,btn12,btn13,btn11,btn2,btn3,btn4,btn5,btn6,btn7)
+        btn14 = types.InlineKeyboardButton('PnL', 'pnl')
+        markup.add(btn1,btn12,btn13)
+        markup.add(btn11, row_width=1)
+        markup.add(btn2,btn3,btn4,btn5,btn6,btn7,btn14)
         bot.edit_message_text(chat_id=call.message.chat.id, disable_web_page_preview=True ,message_id=call.message.message_id, text= msg, parse_mode='Markdown', reply_markup=markup)
         
     
@@ -1119,14 +1260,17 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
         btn1 = types.InlineKeyboardButton("Buy 5 Ton ", callback_data='buys5')
         btn12 = types.InlineKeyboardButton("Buy 10 Ton ", callback_data='buys10')
         btn13 = types.InlineKeyboardButton("Buy X ✏", callback_data='buysx')
-        btn11 = types.InlineKeyboardButton(f'✏ Slippage % ({slip})', callback_data="set_slip")
+        btn11 = types.InlineKeyboardButton(f'✏ Slippage % ({slip * 100})', callback_data="set_slip")
         btn2 = types.InlineKeyboardButton("Sell 25%", callback_data='sell25')
         btn3 = types.InlineKeyboardButton("Sell 50%", callback_data='sell50')
         btn4 = types.InlineKeyboardButton("Sell 75%", callback_data='sell75')
         btn5 = types.InlineKeyboardButton("Sell 100% ", callback_data='sell100')
         btn6 = types.InlineKeyboardButton("Sell X token ", callback_data='sellx')
         btn7 = types.InlineKeyboardButton("🔃 Refresh", callback_data='sellrefresh')
-        markup.add(btn1,btn12,btn13,btn11,btn2,btn3,btn4,btn5,btn6,btn7)
+        btn14 = types.InlineKeyboardButton('PnL', callback_data='pnl')
+        markup.add(btn1,btn12,btn13)
+        markup.add(btn11, row_width=1)
+        markup.add(btn2,btn3,btn4,btn5,btn6,btn7,btn14)
         bot.edit_message_text(chat_id=call.message.chat.id, disable_web_page_preview=True ,message_id=call.message.message_id, text= msg, parse_mode='Markdown', reply_markup=markup)
         
     
@@ -1163,14 +1307,17 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
         btn1 = types.InlineKeyboardButton("Buy 5 Ton ", callback_data='buys5')
         btn12 = types.InlineKeyboardButton("Buy 10 Ton ", callback_data='buys10')
         btn13 = types.InlineKeyboardButton("Buy X ✏", callback_data='buysx')
-        btn11 = types.InlineKeyboardButton(f'✏ Slippage % ({slip})', callback_data="set_slip")
+        btn11 = types.InlineKeyboardButton(f'✏ Slippage % ({slip * 100})', callback_data="set_slip")
         btn2 = types.InlineKeyboardButton("Sell 25%", callback_data='sell25')
         btn3 = types.InlineKeyboardButton("Sell 50%", callback_data='sell50')
         btn4 = types.InlineKeyboardButton("Sell 75%", callback_data='sell75')
         btn5 = types.InlineKeyboardButton("Sell 100% ", callback_data='sell100')
         btn6 = types.InlineKeyboardButton("Sell X token ", callback_data='sellx')
         btn7 = types.InlineKeyboardButton("🔃 Refresh", callback_data='sellrefresh')
-        markup.add(btn1,btn12,btn13,btn11,btn2,btn3,btn4,btn5,btn6,btn7)
+        btn14 = types.InlineKeyboardButton('PnL', callback_data='pnl')
+        markup.add(btn1,btn12,btn13)
+        markup.add(btn11, row_width=1)
+        markup.add(btn2,btn3,btn4,btn5,btn6,btn7,btn14)
         bot.edit_message_text(chat_id=call.message.chat.id, disable_web_page_preview=True ,message_id=call.message.message_id, text= msg, parse_mode='Markdown', reply_markup=markup)
         
         
@@ -1207,14 +1354,17 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
         btn1 = types.InlineKeyboardButton("Buy 5 Ton ", callback_data='buys5')
         btn12 = types.InlineKeyboardButton("Buy 10 Ton ", callback_data='buys10')
         btn13 = types.InlineKeyboardButton("Buy X ✏", callback_data='buysx')
-        btn11 = types.InlineKeyboardButton(f'✏ Slippage % ({slip})', callback_data="set_slip")
+        btn11 = types.InlineKeyboardButton(f'✏ Slippage % ({slip * 100})', callback_data="set_slip")
         btn2 = types.InlineKeyboardButton("Sell 25%", callback_data='sell25')
         btn3 = types.InlineKeyboardButton("Sell 50%", callback_data='sell50')
         btn4 = types.InlineKeyboardButton("Sell 75%", callback_data='sell75')
         btn5 = types.InlineKeyboardButton("Sell 100% ", callback_data='sell100')
         btn6 = types.InlineKeyboardButton("Sell X token ", callback_data='sellx')
         btn7 = types.InlineKeyboardButton("🔃 Refresh", callback_data='sellrefresh')
-        markup.add(btn1,btn12,btn13,btn11,btn2,btn3,btn4,btn5,btn6,btn7)
+        btn14 = types.InlineKeyboardButton('PnL', callback_data='pnl')
+        markup.add(btn1,btn12,btn13)
+        markup.add(btn11, row_width=1)
+        markup.add(btn2,btn3,btn4,btn5,btn6,btn7,btn14)
         bot.edit_message_text(chat_id=call.message.chat.id, disable_web_page_preview=True ,message_id=call.message.message_id, text= msg, parse_mode='Markdown', reply_markup=markup)
 
         
@@ -1250,14 +1400,17 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
         btn1 = types.InlineKeyboardButton("Buy 5 Ton ", callback_data='buys5')
         btn12 = types.InlineKeyboardButton("Buy 10 Ton ", callback_data='buys10')
         btn13 = types.InlineKeyboardButton("Buy X ✏", callback_data='buysx')
-        btn11 = types.InlineKeyboardButton(f'✏ Slippage % ({slip})', callback_data="set_slip")
+        btn11 = types.InlineKeyboardButton(f'✏ Slippage % ({slip * 100})', callback_data="set_slip")
         btn2 = types.InlineKeyboardButton("Sell 25%", callback_data='sell25')
         btn3 = types.InlineKeyboardButton("Sell 50%", callback_data='sell50')
         btn4 = types.InlineKeyboardButton("Sell 75%", callback_data='sell75')
         btn5 = types.InlineKeyboardButton("Sell 100% ", callback_data='sell100')
         btn6 = types.InlineKeyboardButton("Sell X token ", callback_data='sellx')
         btn7 = types.InlineKeyboardButton("🔃 Refresh", callback_data='sellrefresh')
-        markup.add(btn1,btn12,btn13,btn11,btn2,btn3,btn4,btn5,btn6,btn7)
+        btn14 = types.InlineKeyboardButton('PnL', callback_data='pnl')
+        markup.add(btn1,btn12,btn13)
+        markup.add(btn11, row_width=1)
+        markup.add(btn2,btn3,btn4,btn5,btn6,btn7,btn14)
         bot.edit_message_text(chat_id=call.message.chat.id, disable_web_page_preview=True ,message_id=call.message.message_id, text= msg, parse_mode='Markdown', reply_markup=markup)
         
         
@@ -1270,7 +1423,6 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
         bot.delete_message(owner, call.message.message_id)
         
     elif call.data == 'sellx':
-        bot.delete_message(owner,call.message.message_id)
         send = bot.send_message(owner, "send Number of tokens you want to sell: ")
         bot.register_next_step_handler(send, sellix)
         
@@ -2145,42 +2297,7 @@ def sellix(message):
     slip = db_user.get_slippage(owner=owner)
     if bal > initial:
         sell(message, token, initial)
-        buy_mc = 1 if db_trades.get_buy_mc(owner, token) == None else db_trades.get_buy_mc(owner,token)
-        pnl = (get_mc(token)-buy_mc)/buy_mc*100
-        amt = 0 if db_trades.get_buy_amt(owner, token) == None else db_trades.get_buy_amt(owner, token)
-        msg = f"""💎 {name} ({symbol}): 🌐 {pool}
-                
-{'🟩' if round(pnl, 2) >=0 else '🟥'} *profit*: {1 if round(pnl, 2) > 10000 else round(pnl, 2)} % | 💎 {round((get_mc(token)/buy_mc)*amt, 2)} Ton
-
-💎 *CA*: `{token}` [🅲](https://tonscan.org/address/{token})
-
-💦 *LP*: `{pair}`
-
-📈 *MCap*: ${abbreviate(get_mc(token))} *USD* |💵 ${get_price(token)}
-
-💦 * Liquidity*: {lp} TON
-
-💡 *(24h) B {get_url(token)['pairs'][0]['txns']['h24']['buys']} | S {get_url(token)['pairs'][0]['txns']['h24']['sells']} | {get_url(token)['pairs'][0]['priceChange']['h24']}% | Vol: $ {abbreviate(get_url(token)['pairs'][0]['volume']['h24'])}*
-
-*Balance*: 
-{name}: {asyncio.run(jetton_bal(token, wallet))}
-Ton: {asyncio.run(ton_bal(mnemonics))}
-                
-                
-        """
-        markup = types.InlineKeyboardMarkup()
-        btn1 = types.InlineKeyboardButton("Buy 5 Ton ", callback_data='buys5')
-        btn12 = types.InlineKeyboardButton("Buy 10 Ton ", callback_data='buys10')
-        btn13 = types.InlineKeyboardButton("Buy X ✏", callback_data='buysx')
-        btn11 = types.InlineKeyboardButton(f'✏ Slippage % ({slip})', callback_data="set_slip")
-        btn2 = types.InlineKeyboardButton("Sell 25%", callback_data='sell25')
-        btn3 = types.InlineKeyboardButton("Sell 50%", callback_data='sell50')
-        btn4 = types.InlineKeyboardButton("Sell 75%", callback_data='sell75')
-        btn5 = types.InlineKeyboardButton("Sell 100% ", callback_data='sell100')
-        btn6 = types.InlineKeyboardButton("Sell X token ", callback_data='sellx')
-        btn7 = types.InlineKeyboardButton("🔃 Refresh", callback_data='sellrefresh')
-        markup.add(btn1,btn12,btn13,btn11,btn2,btn3,btn4,btn5,btn6,btn7)
-        bot.send_message(owner, msg,'Markdown', disable_web_page_preview=True, reply_markup=markup)
+        time.sleep(25)
         
         
 def buy_x(message):
@@ -2248,14 +2365,17 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
             btn1 = types.InlineKeyboardButton("Buy 5 Ton ", callback_data='buys5')
             btn12 = types.InlineKeyboardButton("Buy 10 Ton ", callback_data='buys10')
             btn13 = types.InlineKeyboardButton("Buy X ✏", callback_data='buysx')
-            btn11 = types.InlineKeyboardButton(f'✏ Slippage % ({slip})', callback_data="set_slip")
+            btn11 = types.InlineKeyboardButton(f'✏ Slippage % ({slip * 100})', callback_data="set_slip")
             btn2 = types.InlineKeyboardButton("Sell 25%", callback_data='sell25')
             btn3 = types.InlineKeyboardButton("Sell 50%", callback_data='sell50')
             btn4 = types.InlineKeyboardButton("Sell 75%", callback_data='sell75')
             btn5 = types.InlineKeyboardButton("Sell 100% ", callback_data='sell100')
             btn6 = types.InlineKeyboardButton("Sell X token ", callback_data='sellx')
             btn7 = types.InlineKeyboardButton("🔃 Refresh", callback_data='sellrefresh')
-            markup.add(btn1,btn12,btn13,btn11,btn2,btn3,btn4,btn5,btn6,btn7)
+            btn14 = types.InlineKeyboardButton('PnL', callback_data='pnl')
+            markup.add(btn1,btn12,btn13)
+            markup.add(btn11, row_width=1)
+            markup.add(btn2,btn3,btn4,btn5,btn6,btn7,btn14)
             bot.send_message(message.chat.id, msg, parse_mode='Markdown', reply_markup=markup, disable_web_page_preview=True)
                 
         else:
@@ -2266,7 +2386,8 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
 def setslip(message):
     owner = message.chat.id
     try:
-        new_slip = int(message.text)
+        new_sli = float(message.text)
+        new_slip = new_sli / 100
     except Exception as e:
         bot.send_message(owner, "Invalid Number")
         
@@ -2300,8 +2421,10 @@ def drop(message):
     try:
         mn = db_user.get_mnemonics(owner)
         mnemonics = eval(decrypt(mn))
-        asyncio.run(airdrop.main(mnemonics, destinations))
+        address = db_airdrop.get_address(owner)
+        asyncio.run(airdrop.main(mnemonics, address, destinations))
         bot.send_message(owner, "Done")
+        db_airdrop.delete_user(owner)
     except Exception as e:
         bot.send_message(owner, "Failed To Send Tokens")
         print(e)

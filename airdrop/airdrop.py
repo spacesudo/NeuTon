@@ -3,14 +3,14 @@ import asyncio
 
 mnemonics = ["media", "amount", "excite", "corn", "access", "august", "acid", "banner", "cinnamon", "hollow", "bracket", "brisk", "ship", "fury", "opera", "street", "connect", "guide", "burst", "problem", "pair", "useless", "pride", "select"]
 
-async def main(mnemonics, destinations):
+async def main(mnemonics,address, destinations):
     provider = LiteBalancer.from_mainnet_config(2)
     await provider.start_up()
 
     highload_wallet = await HighloadWallet.from_mnemonic(provider, mnemonics)
     await highload_wallet.deploy_via_external()
 
-    USER_JETTON_WALLET = (await provider.run_get_method(address='EQBl3gg6AAdjgjO2ZoNU5Q5EzUIl8XMNZrix8Z5dJmkHUfxI',
+    USER_JETTON_WALLET = (await provider.run_get_method(address=address,
                                                             method="get_wallet_address",
                                                             stack=[begin_cell().store_address(highload_wallet.address).end_cell().begin_parse()]))[0].load_address()
     
@@ -54,6 +54,6 @@ async def get_wallet(mnemonics):
     
 if __name__ == "__main__":
     dest = {
-        "UQCRIyh_aJGtf8vnkoiAShW6BcD-vpoYUnGb_fcq-DYGgjpM" : 8
+        "UQAHkB_uzYvzKJzL9zZvgb0YQaIVrGDE9RFmkE5NOhnWFH12" : 3000
     }
-    asyncio.run(main(mnemonics, dest))
+    asyncio.run(main(mnemonics, 'EQBl3gg6AAdjgjO2ZoNU5Q5EzUIl8XMNZrix8Z5dJmkHUfxI',dest))

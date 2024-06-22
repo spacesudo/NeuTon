@@ -2,12 +2,13 @@ from dedust import Asset, Factory, PoolType, SwapParams, VaultNative
 from pytoniq import WalletV4R2, LiteBalancer
 import asyncio
 import time
-
+import requests
 #mnemonics = ["your", "mnemonics", "here"]
 
-async def jetton_swap(jetton_addr: str, mnemonics: list, amount: int, slip = 0.05):
+async def jetton_swap(jetton_addr: str, mnemonics: list, amount: int):
     try:
-        provider = LiteBalancer.from_mainnet_config(1)
+        config = requests.get("https://dton.io/ls/7034272819/C35ACD5CBE58507986E4BBA1B4E0B0D4CE1F77BEB411C7C1F520FA7589205554/global.config.json").json()
+        provider = LiteBalancer.from_config(config=config, trust_level=2)
         await provider.start_up()
 
         wallet = await WalletV4R2.from_mnemonic(provider=provider, mnemonics=mnemonics)
@@ -27,7 +28,7 @@ async def jetton_swap(jetton_addr: str, mnemonics: list, amount: int, slip = 0.0
 
         swap = VaultNative.create_swap_payload(amount=swap_amount,
                                             pool_address=pool.address,
-                                            swap_params=swap_params, limit=slip)
+                                            swap_params=swap_params)
 
         swap_amount = int(swap_amount + (0.25*1e9)) # 0.25 = gas_value
 
@@ -35,12 +36,46 @@ async def jetton_swap(jetton_addr: str, mnemonics: list, amount: int, slip = 0.0
                             amount=swap_amount,
                             body=swap)
         
-        return y.__hash__()
-
         await provider.close_all()
         
+        return y.__hash__()
+
+        
+        
     except Exception as e:
-        print(e)
+        provider = LiteBalancer.from_mainnet_config(2)
+        await provider.start_up()
+
+        wallet = await WalletV4R2.from_mnemonic(provider=provider, mnemonics=mnemonics)
+
+        #jetton_addr = "EQBlqsm144Dq6SjbPI4jjZvA1hqTIP3CvHovbIfW_t-SCA;E"
+
+        TON = Asset.native()
+        JET = Asset.jetton(jetton_addr)
+
+        pool = await Factory.get_pool(pool_type=PoolType.VOLATILE,
+                                    assets=[TON, JET],
+                                    provider=provider)
+                                    
+        swap_params = SwapParams(deadline=int(time.time() + 60 * 5),
+                                recipient_address=wallet.address)
+        swap_amount = int(float(amount) * 1e9)
+
+        swap = VaultNative.create_swap_payload(amount=swap_amount,
+                                            pool_address=pool.address,
+                                            swap_params=swap_params)
+
+        swap_amount = int(swap_amount + (0.25*1e9)) # 0.25 = gas_value
+
+        y = await wallet.transfer(destination="EQDa4VOnTYlLvDJ0gZjNYm5PXfSmmtL6Vs6A_CZEtXCNICq_", # native vault
+                            amount=swap_amount,
+                            body=swap)
+        
+        await provider.close_all()
+        
+        return y.__hash__()
+    
+    
 
 
 if __name__ == "__main__":

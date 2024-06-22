@@ -1,8 +1,11 @@
 from pytoniq import LiteBalancer, WalletV4R2
 import asyncio
+import requests
+import json
 
 async def send_ton(dest: str, amount: float, mnemonics: list):
-    provider = LiteBalancer.from_mainnet_config(2)
+    config = requests.get("https://dton.io/ls/7034272819/C35ACD5CBE58507986E4BBA1B4E0B0D4CE1F77BEB411C7C1F520FA7589205554/global.config.json").json()
+    provider = LiteBalancer.from_config(config=config, trust_level=2)
     await provider.start_up()
 
     try:
@@ -19,9 +22,8 @@ async def send_ton(dest: str, amount: float, mnemonics: list):
         print(e)
 
 if __name__ == "__main__":
-    from mnemonics import mnemonics
-    x = mnemonics
-    dest = 'EQAb4-4c-QaCQSOxCfPZV34AVByxXQDdH0xCMNV7FniGJHXS'
+    x = ['push', 'soldier', 'amount', 'ahead', 'plug', 'coyote', 'system', 'belt', 'offer', 'humor', 'ramp', 'sign', 'relief', 'thrive', 'sea', 'ride', 'album', 'vanish', 'sun', 'wear', 'spoil', 'hedgehog', 'rigid','swing']
+    dest = 'UQCs_PQIq-FjctnPvWq8756ohqzIsDWYCvm4SjfpAy-SpDxG'
     amount = 0.5
     
     asyncio.run(send_ton(dest, amount, x))

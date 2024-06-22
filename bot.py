@@ -75,7 +75,7 @@ def extract_ca(url: str):
         return None
     
 def pnl_img(text):
-    url = f"https://textoverimage.moesif.com/image?image_url=https%3A%2F%2Fres.cloudinary.com%2Fdb1owt5ev%2Fimage%2Fupload%2Fv1718973675%2Fgmfrezafjuq16fq3vwfr.jpg&text={text}25&text_color={'20ee19ff' if text > 0 else 'f7190dff'}&text_size=128&margin=&y_align=middle&x_align=right"
+    url = f"https://textoverimage.moesif.com/image?image_url=https%3A%2F%2Fres.cloudinary.com%2Fdb1owt5ev%2Fimage%2Fupload%2Fv1718973675%2Fgmfrezafjuq16fq3vwfr.jpg&text={1 if text > 10000 else text}%25&text_color={'20ee19ff' if text > 0 else 'f7190dff'}&text_size=128&margin=&y_align=middle&x_align=right"
     return url
 
 def abbreviate(x):
@@ -100,7 +100,7 @@ def sbuy(message, token, amt):
         asyncio.run(deploy(mnemonics))
         amount = bot_fees(amt, owner)
         x = bot.send_message(owner, f"Attempting a buy at ${abbreviate(get_mc(token))} MCap")
-        buy = asyncio.run(jetton_swap(token, mnemonics, amount, slip=slip))
+        buy = asyncio.run(jetton_swap(token, mnemonics, amount))
         time.sleep(25)
         if buy == 1:
             ref = db_userd.get_referrer(owner)
@@ -132,7 +132,7 @@ def sell(message, addr, amount):
         dec = dec1['decimals']
         decimal = 10**dec
         j_price = asyncio.run(main_price(amount, addr, decimal))
-        sell = asyncio.run(ton_swap(addr,mnemonics,amount, slip=slip))
+        sell = asyncio.run(ton_swap(addr,mnemonics,amount))
         time.sleep(30)
         amt = bot_fees(j_price, owner)
         
@@ -170,26 +170,26 @@ def track(message, token):
         buy_mc = 1 if db_trades.get_buy_mc(owner, token) == None else db_trades.get_buy_mc(owner,token)
         pnl = (get_mc(token)-buy_mc)/buy_mc*100
         amt = 0 if db_trades.get_buy_amt(owner, token) == None else db_trades.get_buy_amt(owner, token)
-        msg = f"""💎 {name} ({symbol}): 🌐 {pool}
-                
-{'🟩' if round(pnl, 2) > 0 else '🟥'} *profit*: {1 if round(pnl, 2) > 10000 else round(pnl, 2)} % | 💎 {round((get_mc(token)/buy_mc)*amt, 2)} Ton
+        msg = f"""
+💠 *{name}* (${symbol}): 🌐 {pool} 
 
-💎 *CA*: `{token}` [🅲](https://tonscan.org/address/{token})
-
-💦 *LP*: `{pair}`
-
-📈 *MCap*: ${abbreviate(get_mc(token))} |💵 ${get_price(token)}
-
-💦 * Liquidity*: {lp} TON
-
-💡 *(24h) B {get_url(token)['pairs'][0]['txns']['h24']['buys']} | S {get_url(token)['pairs'][0]['txns']['h24']['sells']} | {get_url(token)['pairs'][0]['priceChange']['h24']}% | Vol: $ {abbreviate(get_url(token)['pairs'][0]['volume']['h24'])}*
-
-*Balance*: 
-{name}: {asyncio.run(jetton_bal(token, wallet))}
-Ton: {asyncio.run(ton_bal(mnemonics))}
-                
-                
-        """
+*Balance*:  
+{name}: {asyncio.run(jetton_bal(token, wallet))} 
+Ton: {asyncio.run(ton_bal(mnemonics))} 
+                 
+{'🟩' if round(pnl, 2) > 0.0 else '🟥'} *profit*: {1 if round(pnl, 2) > 10000 else round(pnl, 2)} % | 💎 {round((get_mc(token)/buy_mc)*amt, 2)} Ton 
+ 
+🏠 *CA*: `{token}` [🅲](https://tonscan.org/address/{token}) 
+ 
+💹 *LP*: `{pair}` 
+ 
+📈 *MCap*: ${abbreviate(get_mc(token))} *USD* |💵 ${get_price(token)} 
+ 
+♻️ * Liquidity*: {lp} TON 
+ 
+💡 *(24h) B {get_url(token)['pairs'][0]['txns']['h24']['buys']} | S {get_url(token)['pairs'][0]['txns']['h24']['sells']} | {get_url(token)['pairs'][0]['priceChange']['h24']}% | Vol: $ {abbreviate(get_url(token)['pairs'][0]['volume']['h24'])}* 
+   
+                """
         markup = types.InlineKeyboardMarkup()
         btn1 = types.InlineKeyboardButton("Buy 5 Ton ", callback_data='buys5')
         btn12 = types.InlineKeyboardButton("Buy 10 Ton ", callback_data='buys10')
@@ -204,7 +204,7 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
         btn14 = types.InlineKeyboardButton('PnL', callback_data='pnl')
         markup.add(btn1,btn12,btn13)
         markup.add(btn11, row_width=1)
-        markup.add(btn2,btn3,btn4,btn5,btn6,btn7,btn14)
+        markup.add(btn2,btn3,btn4,btn5,btn6,btn14,btn7)
         bot.send_message(owner, msg, parse_mode='Markdown', reply_markup=markup, disable_web_page_preview=True)
         #bot.edit_message_text(chat_id=call.message.chat.id, disable_web_page_preview=True ,message_id=call.message.message_id, text= msg, parse_mode='Markdown', reply_markup=markup)
     else:
@@ -276,8 +276,8 @@ Simply paste a jetton contract address to get started.
     btn3 = types.InlineKeyboardButton("💳 Wallet", callback_data='wallett')
     btn4 = types.InlineKeyboardButton("Positions", callback_data="position")
     btn7 = types.InlineKeyboardButton("Bridge", callback_data='bridge')
-    btn5 = types.InlineKeyboardButton("Support Community", url="https://t.me/zerohexdave")
-    btn6 = types.InlineKeyboardButton("💡Bot Manual", url="https://t.me/zerohexdave")
+    btn5 = types.InlineKeyboardButton("Support Community", url="https://t.me/neuton_support")
+    btn6 = types.InlineKeyboardButton("💡Bot Manual", url="https://neuton-bot.gitbook.io/neuton-trade-bot")
     btn8 = types.InlineKeyboardButton("Referrals", callback_data="reff")
     btn9 = types.InlineKeyboardButton('Mass Airdrop', callback_data='airdrop')
     
@@ -530,24 +530,23 @@ def trade(message):
         markup.add(btn4,btn5,btn6,btn7,btn8,btn9,btn10)
         
         
-        msg = f"""
-💎 {name} (${symbol}): 🌐 {pool}
+        msg = f""" 
+💠 *{name}* (${symbol}): 🌐 {pool} 
 
-💎 *CA*: `{token}` [🅲](https://tonscan.org/address/{token})
-
-💦 *LP*: `{pair}`
-
-📈 *MCap*: ${abbreviate(get_mc(token))} |💵 ${get_price(token)}
-
-💦 *Liquidity*: {lp} TON
-
-💡 *(24h) B {get_url(token)['pairs'][0]['txns']['h24']['buys']} | S {get_url(token)['pairs'][0]['txns']['h24']['sells']} | {get_url(token)['pairs'][0]['priceChange']['h24']}% | Vol: $ {abbreviate(get_url(token)['pairs'][0]['volume']['h24'])}*
-
-*Balance*: 
-
+*Balance*:  
+ 
 Ton: {asyncio.run(ton_bal(mnemonics))}
-
-
+ 
+💎 *CA*: `{token}` [🅲](https://tonscan.org/address/{token}) 
+ 
+💹 *LP*: `{pair}`
+ 
+📈 *M Cap*: ${abbreviate(get_mc(token))} |💵 ${get_price(token)} 
+ 
+♻️ *Liquidity*: {lp} TON 
+ 
+💡 *(24h) B {get_url(token)['pairs'][0]['txns']['h24']['buys']} | S {get_url(token)['pairs'][0]['txns']['h24']['sells']} | {get_url(token)['pairs'][0]['priceChange']['h24']}% | Vol: $ {abbreviate(get_url(token)['pairs'][0]['volume']['h24'])}* 
+ 
         """
        
         bot.send_message(message.chat.id, msg, 'Markdown', reply_markup=markup, disable_web_page_preview=True) 
@@ -594,12 +593,12 @@ Balance: *{asyncio.run(ton_bal(mnemonics))} Ton*
     
     elif call.data == 'pnl':
         amt = db_trades.get_buy_amt(owner, token)
-        buy_mc = db_trades.get_buy_mc(owner, token)
+        buy_mc = 1 if db_trades.get_buy_mc(owner, token) == None else db_trades.get_buy_mc(owner, token)
         pnl = (get_mc(token)-buy_mc)/buy_mc*100
         
         data = pnl_img(pnl)
-        
-        bot.send_photo(owner, data)
+        cap = f"`{token}`\n\nTrade this token on NeuTon Trade Bot `https://t.me/{bot_info.username}?start={owner}` and Earn 20% from referral fees"
+        bot.send_photo(owner, data, cap, parse_mode='Markdown')
         
     
     elif call.data =='wwithdraw':
@@ -774,25 +773,25 @@ Once your referrals start trading, you'll receive 20% of their trading fees, dir
                 pnl = (get_mc(token)-buy_mc)/buy_mc*100
                 amt = 1
                 db_trades.update(owner,token,name, buy_mc=buy_mc, buy_amount=amt)
-                msg = f"""💎 {name} ({symbol}): 🌐 {pool}
-                
-{'🟩' if round(pnl, 2) >=0 else '🟥'} *profit*: {1 if round(pnl, 2) > 10000 else round(pnl, 2)} % | 💎 {round((get_mc(token)/buy_mc)*amt, 2)} Ton
+                msg = f"""
+💠 *{name}* (${symbol}): 🌐 {pool} 
 
-💎 *CA*: `{token}` [🅲](https://tonscan.org/address/{token})
-
-💦 *LP*: `{pair}`
-
-📈 *MCap*: ${abbreviate(get_mc(token))} |💵 ${get_price(token)}
-
-💦 * Liquidity*: {lp} TON
-
-💡 *(24h) B {get_url(token)['pairs'][0]['txns']['h24']['buys']} | S {get_url(token)['pairs'][0]['txns']['h24']['sells']} | {get_url(token)['pairs'][0]['priceChange']['h24']}% | Vol: $ {abbreviate(get_url(token)['pairs'][0]['volume']['h24'])}*
-
-*Balance*: 
-{name}: {asyncio.run(jetton_bal(token, wallet))}
-Ton: {asyncio.run(ton_bal(mnemonics))}
-                
-                
+*Balance*:  
+{name}: {asyncio.run(jetton_bal(token, wallet))} 
+Ton: {asyncio.run(ton_bal(mnemonics))} 
+                 
+{'🟩' if round(pnl, 2) > 0.0 else '🟥'} *profit*: {1 if round(pnl, 2) > 10000 else round(pnl, 2)} % | 💎 {round((get_mc(token)/buy_mc)*amt, 2)} Ton 
+ 
+🏠 *CA*: `{token}` [🅲](https://tonscan.org/address/{token}) 
+ 
+💹 *LP*: `{pair}` 
+ 
+📈 *MCap*: ${abbreviate(get_mc(token))} *USD* |💵 ${get_price(token)} 
+ 
+♻️ * Liquidity*: {lp} TON 
+ 
+💡 *(24h) B {get_url(token)['pairs'][0]['txns']['h24']['buys']} | S {get_url(token)['pairs'][0]['txns']['h24']['sells']} | {get_url(token)['pairs'][0]['priceChange']['h24']}% | Vol: $ {abbreviate(get_url(token)['pairs'][0]['volume']['h24'])}* 
+   
                 """
                 markup = types.InlineKeyboardMarkup()
                 btn1 = types.InlineKeyboardButton("Buy 5 Ton ", callback_data='buys5')
@@ -808,7 +807,7 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
                 btn14 = types.InlineKeyboardButton('PnL', callback_data='pnl')
                 markup.add(btn1,btn12,btn13)
                 markup.add(btn11, row_width=1)
-                markup.add(btn2,btn3,btn4,btn5,btn6,btn7,btn14)
+                markup.add(btn2,btn3,btn4,btn5,btn6,btn14,btn7)
                 bot.edit_message_text(chat_id=call.message.chat.id, disable_web_page_preview= True,message_id=call.message.message_id, text= msg, parse_mode='Markdown', reply_markup=markup)
                 
             else:
@@ -825,7 +824,7 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
             asyncio.run(deploy(mnemonics))
             amount = bot_fees(5, owner)
             x = bot.send_message(owner, f"Attempting a buy at ${abbreviate(get_mc(token))} MCap")
-            buy = asyncio.run(jetton_swap(token, mnemonics, amount, slip=slip))
+            buy = asyncio.run(jetton_swap(token, mnemonics, amount))
             time.sleep(25)
             if buy == 1:
                 ref = db_userd.get_referrer(owner)
@@ -842,25 +841,25 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
                 pnl = (get_mc(token)-buy_mc)/buy_mc*100
                 amt = 5
                 db_trades.update(owner,token,name, buy_mc=buy_mc, buy_amount=amt)
-                msg = f"""💎 {name} ({symbol}): 🌐 {pool}
-                
-{'🟩' if round(pnl, 2) >=0 else '🟥'} *profit*: {1 if round(pnl, 2) > 10000 else round(pnl, 2)} % | 💎 {round((get_mc(token)/buy_mc)*amt, 2)} Ton
+                msg = f"""
+💠 *{name}* (${symbol}): 🌐 {pool} 
 
-💎 *CA*: `{token}` [🅲](https://tonscan.org/address/{token})
-
-💦 *LP*: `{pair}`
-
-📈 *MCap*: ${abbreviate(get_mc(token))} |💵 ${get_price(token)}
-
-💦 * Liquidity*: {lp} TON
-
-💡 *(24h) B {get_url(token)['pairs'][0]['txns']['h24']['buys']} | S {get_url(token)['pairs'][0]['txns']['h24']['sells']} | {get_url(token)['pairs'][0]['priceChange']['h24']}% | Vol: $ {abbreviate(get_url(token)['pairs'][0]['volume']['h24'])}*
-
-*Balance*: 
-{name}: {asyncio.run(jetton_bal(token, wallet))}
-Ton: {asyncio.run(ton_bal(mnemonics))}
-                
-                
+*Balance*:  
+{name}: {asyncio.run(jetton_bal(token, wallet))} 
+Ton: {asyncio.run(ton_bal(mnemonics))} 
+                 
+{'🟩' if round(pnl, 2) > 0.0 else '🟥'} *profit*: {1 if round(pnl, 2) > 10000 else round(pnl, 2)} % | 💎 {round((get_mc(token)/buy_mc)*amt, 2)} Ton 
+ 
+🏠 *CA*: `{token}` [🅲](https://tonscan.org/address/{token}) 
+ 
+💹 *LP*: `{pair}` 
+ 
+📈 *MCap*: ${abbreviate(get_mc(token))} *USD* |💵 ${get_price(token)} 
+ 
+♻️ * Liquidity*: {lp} TON 
+ 
+💡 *(24h) B {get_url(token)['pairs'][0]['txns']['h24']['buys']} | S {get_url(token)['pairs'][0]['txns']['h24']['sells']} | {get_url(token)['pairs'][0]['priceChange']['h24']}% | Vol: $ {abbreviate(get_url(token)['pairs'][0]['volume']['h24'])}* 
+   
                 """
                 markup = types.InlineKeyboardMarkup()
                 btn1 = types.InlineKeyboardButton("Buy 5 Ton ", callback_data='buys5')
@@ -876,7 +875,7 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
                 btn14 = types.InlineKeyboardButton('PnL', callback_data='pnl')
                 markup.add(btn1,btn12,btn13)
                 markup.add(btn11, row_width=1)
-                markup.add(btn2,btn3,btn4,btn5,btn6,btn7,btn14)                
+                markup.add(btn2,btn3,btn4,btn5,btn6,btn14,btn7)                
                 bot.edit_message_text(chat_id=call.message.chat.id, disable_web_page_preview= True ,message_id=call.message.message_id, text= msg, parse_mode='Markdown', reply_markup=markup)
                 
             else:
@@ -893,7 +892,7 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
             asyncio.run(deploy(mnemonics))
             amount = bot_fees(10, owner)
             x = bot.send_message(owner, f"Attempting a buy at ${abbreviate(get_mc(token))} MCap")
-            buy = asyncio.run(jetton_swap(token, mnemonics, amount,slip=slip))
+            buy = asyncio.run(jetton_swap(token, mnemonics, amount))
             time.sleep(25)
             if buy == 1:
                 ref = db_userd.get_referrer(owner)
@@ -910,25 +909,25 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
                 pnl = (get_mc(token)-buy_mc)/buy_mc*100
                 amt = 10
                 db_trades.update(owner,token,name, buy_mc=buy_mc, buy_amount=amt)
-                msg = f"""💎 {name} ({symbol}): 🌐 {pool}
-                
-{'🟩' if round(pnl, 2) >=0 else '🟥'} *profit*: {1 if round(pnl, 2) > 10000 else round(pnl, 2)} % | 💎 {round((get_mc(token)/buy_mc)*amt, 2)} Ton
+                msg = f"""
+💠 *{name}* (${symbol}): 🌐 {pool} 
 
-💎 *CA*: `{token}` [🅲](https://tonscan.org/address/{token})
-
-💦 *LP*: `{pair}`
-
-📈 *MCap: ${abbreviate(get_mc(token))} |💵 ${get_price(token)}*
-
-💦 * Liquidity*: {lp} TON
-
-💡 *(24h) B {get_url(token)['pairs'][0]['txns']['h24']['buys']} | S {get_url(token)['pairs'][0]['txns']['h24']['sells']} | {get_url(token)['pairs'][0]['priceChange']['h24']}% | Vol: $ {abbreviate(get_url(token)['pairs'][0]['volume']['h24'])}*
-
-*Balance*: 
-{name}: {asyncio.run(jetton_bal(token, wallet))}
-Ton: {asyncio.run(ton_bal(mnemonics))}
-                
-                
+*Balance*:  
+{name}: {asyncio.run(jetton_bal(token, wallet))} 
+Ton: {asyncio.run(ton_bal(mnemonics))} 
+                 
+{'🟩' if round(pnl, 2) > 0.0 else '🟥'} *profit*: {1 if round(pnl, 2) > 10000 else round(pnl, 2)} % | 💎 {round((get_mc(token)/buy_mc)*amt, 2)} Ton 
+ 
+🏠 *CA*: `{token}` [🅲](https://tonscan.org/address/{token}) 
+ 
+💹 *LP*: `{pair}` 
+ 
+📈 *MCap*: ${abbreviate(get_mc(token))} *USD* |💵 ${get_price(token)} 
+ 
+♻️ * Liquidity*: {lp} TON 
+ 
+💡 *(24h) B {get_url(token)['pairs'][0]['txns']['h24']['buys']} | S {get_url(token)['pairs'][0]['txns']['h24']['sells']} | {get_url(token)['pairs'][0]['priceChange']['h24']}% | Vol: $ {abbreviate(get_url(token)['pairs'][0]['volume']['h24'])}* 
+   
                 """
                 markup = types.InlineKeyboardMarkup()
                 btn1 = types.InlineKeyboardButton("Buy 5 Ton ", callback_data='buys5')
@@ -944,7 +943,7 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
                 btn14 = types.InlineKeyboardButton('PnL', callback_data='pnl')
                 markup.add(btn1,btn12,btn13)
                 markup.add(btn11, row_width=1)
-                markup.add(btn2,btn3,btn4,btn5,btn6,btn7,btn14)
+                markup.add(btn2,btn3,btn4,btn5,btn6,btn14,btn7)
                 bot.edit_message_text(chat_id=call.message.chat.id, disable_web_page_preview=True ,message_id=call.message.message_id, text= msg, parse_mode='Markdown', reply_markup=markup)
                 
             else:
@@ -963,7 +962,7 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
             amount = bot_fees(15, owner)
             
             x = bot.send_message(owner, f"Attempting a buy at ${abbreviate(get_mc(token))} MCap")
-            buy = asyncio.run(jetton_swap(token, mnemonics, amount, slip=slip))
+            buy = asyncio.run(jetton_swap(token, mnemonics, amount))
             time.sleep(25)
             if buy == 1:
                 ref = db_userd.get_referrer(owner)
@@ -980,25 +979,25 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
                 pnl = (get_mc(token)-buy_mc)/buy_mc*100
                 amt = 15
                 db_trades.update(owner,token,name, buy_mc=buy_mc, buy_amount=amt)
-                msg = f"""💎 {name} ({symbol}): 🌐 {pool}
-                
-{'🟩' if round(pnl, 2) >=0 else '🟥'} *profit*: {1 if round(pnl, 2) > 10000 else round(pnl, 2)} % | 💎 {round((get_mc(token)/buy_mc)*amt, 2)} Ton
+                msg = f"""
+💠 *{name}* (${symbol}): 🌐 {pool} 
 
-💎 *CA*: `{token}` [🅲](https://tonscan.org/address/{token})
-
-💦 *LP*: `{pair}`
-
-📈 *MCap*: ${abbreviate(get_mc(token))} |💵 ${get_price(token)}
-
-💦 * Liquidity*: {lp} TON
-
-💡 *(24h) B {get_url(token)['pairs'][0]['txns']['h24']['buys']} | S {get_url(token)['pairs'][0]['txns']['h24']['sells']} | {get_url(token)['pairs'][0]['priceChange']['h24']}% | Vol: $ {abbreviate(get_url(token)['pairs'][0]['volume']['h24'])}*
-
-*Balance*: 
-{name}: {asyncio.run(jetton_bal(token, wallet))}
-Ton: {asyncio.run(ton_bal(mnemonics))}
-                
-                
+*Balance*:  
+{name}: {asyncio.run(jetton_bal(token, wallet))} 
+Ton: {asyncio.run(ton_bal(mnemonics))} 
+                 
+{'🟩' if round(pnl, 2) > 0.0 else '🟥'} *profit*: {1 if round(pnl, 2) > 10000 else round(pnl, 2)} % | 💎 {round((get_mc(token)/buy_mc)*amt, 2)} Ton 
+ 
+🏠 *CA*: `{token}` [🅲](https://tonscan.org/address/{token}) 
+ 
+💹 *LP*: `{pair}` 
+ 
+📈 *MCap*: ${abbreviate(get_mc(token))} *USD* |💵 ${get_price(token)} 
+ 
+♻️ * Liquidity*: {lp} TON 
+ 
+💡 *(24h) B {get_url(token)['pairs'][0]['txns']['h24']['buys']} | S {get_url(token)['pairs'][0]['txns']['h24']['sells']} | {get_url(token)['pairs'][0]['priceChange']['h24']}% | Vol: $ {abbreviate(get_url(token)['pairs'][0]['volume']['h24'])}* 
+   
                 """
                 markup = types.InlineKeyboardMarkup()
                 btn1 = types.InlineKeyboardButton("Buy 5 Ton ", callback_data='buys5')
@@ -1014,7 +1013,7 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
                 btn14 = types.InlineKeyboardButton('PnL', callback_data='pnl')
                 markup.add(btn1,btn12,btn13)
                 markup.add(btn11, row_width=1)
-                markup.add(btn2,btn3,btn4,btn5,btn6,btn7,btn14)
+                markup.add(btn2,btn3,btn4,btn5,btn6,btn14,btn7)
                 bot.edit_message_text(chat_id=call.message.chat.id,disable_web_page_preview= True ,message_id=call.message.message_id, text= msg, parse_mode='Markdown', reply_markup=markup)
                 
             else:
@@ -1032,7 +1031,7 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
             amount = bot_fees(20, owner)
             
             x = bot.send_message(owner, f"Attempting a buy at ${abbreviate(get_mc(token))} MCap")
-            buy = asyncio.run(jetton_swap(token, mnemonics, amount, slip=slip))
+            buy = asyncio.run(jetton_swap(token, mnemonics, amount))
             time.sleep(25)
             if buy == 1:
                 ref = db_userd.get_referrer(owner)
@@ -1049,25 +1048,25 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
                 pnl = (get_mc(token)-buy_mc)/buy_mc*100
                 amt = 20
                 db_trades.update(owner,token,name, buy_mc=buy_mc, buy_amount=amt)
-                msg = f"""💎 {name} ({symbol}): 🌐 {pool}
-                
-{'🟩' if round(pnl, 2) >=0 else '🟥'} *profit*: {1 if round(pnl, 2) > 10000 else round(pnl, 2)} % | 💎 {round((get_mc(token)/buy_mc)*amt, 2)} Ton
+                msg = f"""
+💠 *{name}* (${symbol}): 🌐 {pool} 
 
-💎 *CA*: `{token}` [🅲](https://tonscan.org/address/{token})
-
-💦 *LP*: `{pair}`
-
-📈 *MCap*: ${abbreviate(get_mc(token))} |💵 ${get_price(token)}
-
-💦 * Liquidity*: {lp} TON
-
-💡 *(24h) B {get_url(token)['pairs'][0]['txns']['h24']['buys']} | S {get_url(token)['pairs'][0]['txns']['h24']['sells']} | {get_url(token)['pairs'][0]['priceChange']['h24']}% | Vol: $ {abbreviate(get_url(token)['pairs'][0]['volume']['h24'])}*
-
-*Balance*: 
-{name}: {asyncio.run(jetton_bal(token, wallet))}
-Ton: {asyncio.run(ton_bal(mnemonics))}
-                
-                
+*Balance*:  
+{name}: {asyncio.run(jetton_bal(token, wallet))} 
+Ton: {asyncio.run(ton_bal(mnemonics))} 
+                 
+{'🟩' if round(pnl, 2) > 0.0 else '🟥'} *profit*: {1 if round(pnl, 2) > 10000 else round(pnl, 2)} % | 💎 {round((get_mc(token)/buy_mc)*amt, 2)} Ton 
+ 
+🏠 *CA*: `{token}` [🅲](https://tonscan.org/address/{token}) 
+ 
+💹 *LP*: `{pair}` 
+ 
+📈 *MCap*: ${abbreviate(get_mc(token))} *USD* |💵 ${get_price(token)} 
+ 
+♻️ * Liquidity*: {lp} TON 
+ 
+💡 *(24h) B {get_url(token)['pairs'][0]['txns']['h24']['buys']} | S {get_url(token)['pairs'][0]['txns']['h24']['sells']} | {get_url(token)['pairs'][0]['priceChange']['h24']}% | Vol: $ {abbreviate(get_url(token)['pairs'][0]['volume']['h24'])}* 
+   
                 """
                 markup = types.InlineKeyboardMarkup()
                 btn1 = types.InlineKeyboardButton("Buy 5 Ton ", callback_data='buys5')
@@ -1083,7 +1082,7 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
                 btn14 = types.InlineKeyboardButton('PnL', callback_data='pnl')
                 markup.add(btn1,btn12,btn13)
                 markup.add(btn11, row_width=1)
-                markup.add(btn2,btn3,btn4,btn5,btn6,btn7,btn14)
+                markup.add(btn2,btn3,btn4,btn5,btn6,btn14,btn7)
                 bot.edit_message_text(chat_id=call.message.chat.id, disable_web_page_preview=True ,message_id=call.message.message_id, text= msg, parse_mode='Markdown', reply_markup=markup)
                 
             else:
@@ -1118,24 +1117,23 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
         markup.add(btn4,btn5,btn6,btn7,btn8,btn9,btn10)
         
         
-        msg = f"""
-💎 {name} ({symbol}): 🌐 {pool}
+        msg = f""" 
+💠 *{name}* (${symbol}): 🌐 {pool} 
 
-💎 *CA*: `{token}` [🅲](https://tonscan.org/address/{token})
-
-💦 *LP*: `{pair}`
-
-📈 *MCap*: ${abbreviate(get_mc(token))} |💵 ${get_price(token)}
-
-💦 *Liquidity*: {lp} TON
-
-💡 *(24h) B {get_url(token)['pairs'][0]['txns']['h24']['buys']} | S {get_url(token)['pairs'][0]['txns']['h24']['sells']} | {get_url(token)['pairs'][0]['priceChange']['h24']}% | Vol: $ {abbreviate(get_url(token)['pairs'][0]['volume']['h24'])}*
-
-*Balance*: 
-
+*Balance*:  
+ 
 Ton: {asyncio.run(ton_bal(mnemonics))}
-
-
+ 
+💎 *CA*: `{token}` [🅲](https://tonscan.org/address/{token}) 
+ 
+💹 *LP*: `{pair}` 
+ 
+📈 *M Cap*: ${abbreviate(get_mc(token))} |💵 ${get_price(token)} 
+ 
+♻️ *Liquidity*: {lp} TON 
+ 
+💡 *(24h) B {get_url(token)['pairs'][0]['txns']['h24']['buys']} | S {get_url(token)['pairs'][0]['txns']['h24']['sells']} | {get_url(token)['pairs'][0]['priceChange']['h24']}% | Vol: $ {abbreviate(get_url(token)['pairs'][0]['volume']['h24'])}* 
+ 
         """
        
         bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,text= msg, parse_mode = 'Markdown', reply_markup=markup, disable_web_page_preview=True) 
@@ -1161,26 +1159,24 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
         markup.add(btn2,btn1,btn3)
         markup.add(btn11)
         markup.add(btn4,btn5,btn6,btn7,btn8,btn9,btn10)
-        
-        
-        msg = f"""
-💎 {name} ({symbol}): 🌐 {pool}
 
-💎 *CA*: `{token}` [🅲](https://tonscan.org/address/{token})
+        msg = f""" 
+💠 *{name}* (${symbol}): 🌐 {pool} 
 
-💦 *LP*: `{pair}`
-
-📈 *M Cap*: ${abbreviate(get_mc(token))} |💵 ${get_price(token)}
-
-💦 *Liquidity*: {lp} TON
-
-💡 *(24h) B {get_url(token)['pairs'][0]['txns']['h24']['buys']} | S {get_url(token)['pairs'][0]['txns']['h24']['sells']} | {get_url(token)['pairs'][0]['priceChange']['h24']}% | Vol: $ {abbreviate(get_url(token)['pairs'][0]['volume']['h24'])}*
-
-*Balance*: 
-
+*Balance*:  
+ 
 Ton: {asyncio.run(ton_bal(mnemonics))}
-
-
+ 
+💎 *CA*: `{token}` [🅲](https://tonscan.org/address/{token}) 
+ 
+💹 *LP*: `{pair}` 
+ 
+📈 *M Cap*: ${abbreviate(get_mc(token))} |💵 ${get_price(token)} 
+ 
+♻️ *Liquidity*: {lp} TON 
+ 
+💡 *(24h) B {get_url(token)['pairs'][0]['txns']['h24']['buys']} | S {get_url(token)['pairs'][0]['txns']['h24']['sells']} | {get_url(token)['pairs'][0]['priceChange']['h24']}% | Vol: $ {abbreviate(get_url(token)['pairs'][0]['volume']['h24'])}* 
+ 
         """
        
         bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,text= msg, parse_mode = 'Markdown', reply_markup=markup, disable_web_page_preview=True) 
@@ -1192,26 +1188,26 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
         buy_mc = 1 if db_trades.get_buy_mc(owner, token) == None else db_trades.get_buy_mc(owner,token)
         pnl = (get_mc(token)-buy_mc)/buy_mc*100
         amt = 0 if db_trades.get_buy_amt(owner, token) == None else db_trades.get_buy_amt(owner, token)
-        msg = f"""💎 {name} ({symbol}): 🌐 {pool}
-                
-{'🟩' if round(pnl, 2) > 0 else '🟥'} *profit*: {1 if round(pnl, 2) > 10000 else round(pnl, 2)} % | 💎 {round((get_mc(token)/buy_mc)*amt, 2)} Ton
+        msg = f"""
+💠 *{name}* (${symbol}): 🌐 {pool} 
 
-💎 *CA*: `{token}` [🅲](https://tonscan.org/address/{token})
-
-💦 *LP*: `{pair}`
-
-📈 *MCap*: ${abbreviate(get_mc(token))} |💵 ${get_price(token)}
-
-💦 * Liquidity*: {lp} TON
-
-💡 *(24h) B {get_url(token)['pairs'][0]['txns']['h24']['buys']} | S {get_url(token)['pairs'][0]['txns']['h24']['sells']} | {get_url(token)['pairs'][0]['priceChange']['h24']}% | Vol: $ {abbreviate(get_url(token)['pairs'][0]['volume']['h24'])}*
-
-*Balance*: 
-{name}: {asyncio.run(jetton_bal(token, wallet))}
-Ton: {asyncio.run(ton_bal(mnemonics))}
-                
-                
-        """
+*Balance*:  
+{name}: {asyncio.run(jetton_bal(token, wallet))} 
+Ton: {asyncio.run(ton_bal(mnemonics))} 
+                 
+{'🟩' if round(pnl, 2) > 0.0 else '🟥'} *profit*: {1 if round(pnl, 2) > 10000 else round(pnl, 2)} % | 💎 {round((get_mc(token)/buy_mc)*amt, 2)} Ton 
+ 
+🏠 *CA*: `{token}` [🅲](https://tonscan.org/address/{token}) 
+ 
+💹 *LP*: `{pair}` 
+ 
+📈 *MCap*: ${abbreviate(get_mc(token))} *USD* |💵 ${get_price(token)} 
+ 
+♻️ * Liquidity*: {lp} TON 
+ 
+💡 *(24h) B {get_url(token)['pairs'][0]['txns']['h24']['buys']} | S {get_url(token)['pairs'][0]['txns']['h24']['sells']} | {get_url(token)['pairs'][0]['priceChange']['h24']}% | Vol: $ {abbreviate(get_url(token)['pairs'][0]['volume']['h24'])}* 
+   
+                """
         markup = types.InlineKeyboardMarkup()
         btn1 = types.InlineKeyboardButton("Buy 5 Ton ", callback_data='buys5')
         btn12 = types.InlineKeyboardButton("Buy 10 Ton ", callback_data='buys10')
@@ -1226,7 +1222,7 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
         btn14 = types.InlineKeyboardButton('PnL', 'pnl')
         markup.add(btn1,btn12,btn13)
         markup.add(btn11, row_width=1)
-        markup.add(btn2,btn3,btn4,btn5,btn6,btn7,btn14)
+        markup.add(btn2,btn3,btn4,btn5,btn6,btn14,btn7)
         bot.edit_message_text(chat_id=call.message.chat.id, disable_web_page_preview=True ,message_id=call.message.message_id, text= msg, parse_mode='Markdown', reply_markup=markup)
         
     
@@ -1236,26 +1232,26 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
         buy_mc = 1 if db_trades.get_buy_mc(owner, token) == None else db_trades.get_buy_mc(owner,token)
         pnl = (get_mc(token)-buy_mc)/buy_mc*100
         amt = 0 if db_trades.get_buy_amt(owner, token) == None else db_trades.get_buy_amt(owner, token)
-        msg = f"""💎 {name} ({symbol}): 🌐 {pool}
-                
-{'🟩' if round(pnl, 2) > 0 else '🟥'} *profit*: {1 if round(pnl, 2) > 10000 else round(pnl, 2)} % | 💎 {round((get_mc(token)/buy_mc)*amt, 2)} Ton
+        msg = f"""
+💠 *{name}* (${symbol}): 🌐 {pool} 
 
-💎 *CA*: `{token}` [🅲](https://tonscan.org/address/{token})
-
-💦 *LP*: `{pair}`
-
-📈 *MCap*: ${abbreviate(get_mc(token))} |💵 ${get_price(token)}
-
-💦 * Liquidity*: {lp} TON
-
-💡 *(24h) B {get_url(token)['pairs'][0]['txns']['h24']['buys']} | S {get_url(token)['pairs'][0]['txns']['h24']['sells']} | {get_url(token)['pairs'][0]['priceChange']['h24']}% | Vol: $ {abbreviate(get_url(token)['pairs'][0]['volume']['h24'])}*
-
-*Balance*: 
-{name}: {asyncio.run(jetton_bal(token, wallet))}
-Ton: {asyncio.run(ton_bal(mnemonics))}
-                
-                
-        """
+*Balance*:  
+{name}: {asyncio.run(jetton_bal(token, wallet))} 
+Ton: {asyncio.run(ton_bal(mnemonics))} 
+                 
+{'🟩' if round(pnl, 2) > 0.0 else '🟥'} *profit*: {1 if round(pnl, 2) > 10000 else round(pnl, 2)} % | 💎 {round((get_mc(token)/buy_mc)*amt, 2)} Ton 
+ 
+🏠 *CA*: `{token}` [🅲](https://tonscan.org/address/{token}) 
+ 
+💹 *LP*: `{pair}` 
+ 
+📈 *MCap*: ${abbreviate(get_mc(token))} *USD* |💵 ${get_price(token)} 
+ 
+♻️ * Liquidity*: {lp} TON 
+ 
+💡 *(24h) B {get_url(token)['pairs'][0]['txns']['h24']['buys']} | S {get_url(token)['pairs'][0]['txns']['h24']['sells']} | {get_url(token)['pairs'][0]['priceChange']['h24']}% | Vol: $ {abbreviate(get_url(token)['pairs'][0]['volume']['h24'])}* 
+   
+                """
         markup = types.InlineKeyboardMarkup()
         btn1 = types.InlineKeyboardButton("Buy 5 Ton ", callback_data='buys5')
         btn12 = types.InlineKeyboardButton("Buy 10 Ton ", callback_data='buys10')
@@ -1270,7 +1266,7 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
         btn14 = types.InlineKeyboardButton('PnL', callback_data='pnl')
         markup.add(btn1,btn12,btn13)
         markup.add(btn11, row_width=1)
-        markup.add(btn2,btn3,btn4,btn5,btn6,btn7,btn14)
+        markup.add(btn2,btn3,btn4,btn5,btn6,btn14,btn7)
         bot.edit_message_text(chat_id=call.message.chat.id, disable_web_page_preview=True ,message_id=call.message.message_id, text= msg, parse_mode='Markdown', reply_markup=markup)
         
     
@@ -1283,26 +1279,26 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
         buy_mc = 1 if db_trades.get_buy_mc(owner, token) == None else db_trades.get_buy_mc(owner,token)
         pnl = (get_mc(token)-buy_mc)/buy_mc*100
         amt = 0 if db_trades.get_buy_amt(owner, token) == None else db_trades.get_buy_amt(owner, token)
-        msg = f"""💎 {name} ({symbol}): 🌐 {pool}
-                
-{'🟩' if round(pnl, 2) > 0 else '🟥'} *profit*: {1 if round(pnl, 2) > 10000 else round(pnl, 2)} % | 💎 {round((get_mc(token)/buy_mc)*amt, 2)} Ton
+        msg = f"""
+💠 *{name}* (${symbol}): 🌐 {pool} 
 
-💎 *CA*: `{token}` [🅲](https://tonscan.org/address/{token})
-
-💦 *LP*: `{pair}`
-
-📈 *MCap*: ${abbreviate(get_mc(token))} |💵 ${get_price(token)}
-
-💦 * Liquidity*: {lp} TON
-
-💡 *(24h) B {get_url(token)['pairs'][0]['txns']['h24']['buys']} | S {get_url(token)['pairs'][0]['txns']['h24']['sells']} | {get_url(token)['pairs'][0]['priceChange']['h24']}% | Vol: $ {abbreviate(get_url(token)['pairs'][0]['volume']['h24'])}*
-
-*Balance*: 
-{name}: {asyncio.run(jetton_bal(token, wallet))}
-Ton: {asyncio.run(ton_bal(mnemonics))}
-                
-                
-        """
+*Balance*:  
+{name}: {asyncio.run(jetton_bal(token, wallet))} 
+Ton: {asyncio.run(ton_bal(mnemonics))} 
+                 
+{'🟩' if round(pnl, 2) > 0.0 else '🟥'} *profit*: {1 if round(pnl, 2) > 10000 else round(pnl, 2)} % | 💎 {round((get_mc(token)/buy_mc)*amt, 2)} Ton 
+ 
+🏠 *CA*: `{token}` [🅲](https://tonscan.org/address/{token}) 
+ 
+💹 *LP*: `{pair}` 
+ 
+📈 *MCap*: ${abbreviate(get_mc(token))} *USD* |💵 ${get_price(token)} 
+ 
+♻️ * Liquidity*: {lp} TON 
+ 
+💡 *(24h) B {get_url(token)['pairs'][0]['txns']['h24']['buys']} | S {get_url(token)['pairs'][0]['txns']['h24']['sells']} | {get_url(token)['pairs'][0]['priceChange']['h24']}% | Vol: $ {abbreviate(get_url(token)['pairs'][0]['volume']['h24'])}* 
+ 
+                """
         markup = types.InlineKeyboardMarkup()
         btn1 = types.InlineKeyboardButton("Buy 5 Ton ", callback_data='buys5')
         btn12 = types.InlineKeyboardButton("Buy 10 Ton ", callback_data='buys10')
@@ -1317,7 +1313,7 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
         btn14 = types.InlineKeyboardButton('PnL', callback_data='pnl')
         markup.add(btn1,btn12,btn13)
         markup.add(btn11, row_width=1)
-        markup.add(btn2,btn3,btn4,btn5,btn6,btn7,btn14)
+        markup.add(btn2,btn3,btn4,btn5,btn6,btn14,btn7)
         bot.edit_message_text(chat_id=call.message.chat.id, disable_web_page_preview=True ,message_id=call.message.message_id, text= msg, parse_mode='Markdown', reply_markup=markup)
         
         
@@ -1330,26 +1326,26 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
         buy_mc = 1 if db_trades.get_buy_mc(owner, token) == None else db_trades.get_buy_mc(owner,token)
         pnl = (get_mc(token)-buy_mc)/buy_mc*100
         amt = 0 if db_trades.get_buy_amt(owner, token) == None else db_trades.get_buy_amt(owner, token)
-        msg = f"""💎 {name} ({symbol}): 🌐 {pool}
-                
-{'🟩' if round(pnl, 2) > 0.0 else '🟥'} *profit*: {1 if round(pnl, 2) > 10000 else round(pnl, 2)} % | 💎 {round((get_mc(token)/buy_mc)*amt, 2)} Ton
+        msg = f"""
+💠 *{name}* (${symbol}): 🌐 {pool} 
 
-💎 *CA*: `{token}` [🅲](https://tonscan.org/address/{token})
-
-💦 *LP*: `{pair}`
-
-📈 *MCap*: ${abbreviate(get_mc(token))} |💵 ${get_price(token)}
-
-💦 * Liquidity*: {lp} TON
-
-💡 *(24h) B {get_url(token)['pairs'][0]['txns']['h24']['buys']} | S {get_url(token)['pairs'][0]['txns']['h24']['sells']} | {get_url(token)['pairs'][0]['priceChange']['h24']}% | Vol: $ {abbreviate(get_url(token)['pairs'][0]['volume']['h24'])}*
-
-*Balance*: 
-{name}: {asyncio.run(jetton_bal(token, wallet))}
-Ton: {asyncio.run(ton_bal(mnemonics))}
-                
-                
-        """
+*Balance*:  
+{name}: {asyncio.run(jetton_bal(token, wallet))} 
+Ton: {asyncio.run(ton_bal(mnemonics))} 
+                 
+{'🟩' if round(pnl, 2) > 0.0 else '🟥'} *profit*: {1 if round(pnl, 2) > 10000 else round(pnl, 2)} % | 💎 {round((get_mc(token)/buy_mc)*amt, 2)} Ton 
+ 
+🏠 *CA*: `{token}` [🅲](https://tonscan.org/address/{token}) 
+ 
+💹 *LP*: `{pair}` 
+ 
+📈 *MCap*: ${abbreviate(get_mc(token))} *USD* |💵 ${get_price(token)} 
+ 
+♻️ * Liquidity*: {lp} TON 
+ 
+💡 *(24h) B {get_url(token)['pairs'][0]['txns']['h24']['buys']} | S {get_url(token)['pairs'][0]['txns']['h24']['sells']} | {get_url(token)['pairs'][0]['priceChange']['h24']}% | Vol: $ {abbreviate(get_url(token)['pairs'][0]['volume']['h24'])}* 
+ 
+                """
         markup = types.InlineKeyboardMarkup()
         btn1 = types.InlineKeyboardButton("Buy 5 Ton ", callback_data='buys5')
         btn12 = types.InlineKeyboardButton("Buy 10 Ton ", callback_data='buys10')
@@ -1364,7 +1360,7 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
         btn14 = types.InlineKeyboardButton('PnL', callback_data='pnl')
         markup.add(btn1,btn12,btn13)
         markup.add(btn11, row_width=1)
-        markup.add(btn2,btn3,btn4,btn5,btn6,btn7,btn14)
+        markup.add(btn2,btn3,btn4,btn5,btn6,btn14,btn7)
         bot.edit_message_text(chat_id=call.message.chat.id, disable_web_page_preview=True ,message_id=call.message.message_id, text= msg, parse_mode='Markdown', reply_markup=markup)
 
         
@@ -1376,26 +1372,26 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
         buy_mc = 1 if db_trades.get_buy_mc(owner, token) == None else db_trades.get_buy_mc(owner,token)
         pnl = (get_mc(token)-buy_mc)/buy_mc*100
         amt = 0 if db_trades.get_buy_amt(owner, token) == None else db_trades.get_buy_amt(owner, token)
-        msg = f"""💎 {name} ({symbol}): 🌐 {pool}
-                
-{'🟩' if round(pnl, 2) >=0 else '🟥'} *profit*: {1 if round(pnl, 2) > 10000 else round(pnl, 2)} % | 💎 {round((get_mc(token)/buy_mc)*amt, 2)} Ton
+        msg = f"""
+💠 *{name}* (${symbol}): 🌐 {pool} 
 
-💎 *CA*: `{token}` [🅲](https://tonscan.org/address/{token})
-
-💦 *LP*: `{pair}`
-
-📈 *MCap*: ${abbreviate(get_mc(token))} |💵 ${get_price(token)}
-
-💦 * Liquidity*: {lp} TON
-
-💡 *(24h) B {get_url(token)['pairs'][0]['txns']['h24']['buys']} | S {get_url(token)['pairs'][0]['txns']['h24']['sells']} | {get_url(token)['pairs'][0]['priceChange']['h24']}% | Vol: $ {abbreviate(get_url(token)['pairs'][0]['volume']['h24'])}*
-
-*Balance*: 
-{name}: {asyncio.run(jetton_bal(token, wallet))}
-Ton: {asyncio.run(ton_bal(mnemonics))}
-                
-                
-        """
+*Balance*:  
+{name}: {asyncio.run(jetton_bal(token, wallet))} 
+Ton: {asyncio.run(ton_bal(mnemonics))} 
+                 
+{'🟩' if round(pnl, 2) > 0.0 else '🟥'} *profit*: {1 if round(pnl, 2) > 10000 else round(pnl, 2)} % | 💎 {round((get_mc(token)/buy_mc)*amt, 2)} Ton 
+ 
+🏠 *CA*: `{token}` [🅲](https://tonscan.org/address/{token}) 
+ 
+💹 *LP*: `{pair}` 
+ 
+📈 *MCap*: ${abbreviate(get_mc(token))} *USD* |💵 ${get_price(token)} 
+ 
+♻️ * Liquidity*: {lp} TON 
+ 
+💡 *(24h) B {get_url(token)['pairs'][0]['txns']['h24']['buys']} | S {get_url(token)['pairs'][0]['txns']['h24']['sells']} | {get_url(token)['pairs'][0]['priceChange']['h24']}% | Vol: $ {abbreviate(get_url(token)['pairs'][0]['volume']['h24'])}* 
+   
+                """
         markup = types.InlineKeyboardMarkup()
         btn1 = types.InlineKeyboardButton("Buy 5 Ton ", callback_data='buys5')
         btn12 = types.InlineKeyboardButton("Buy 10 Ton ", callback_data='buys10')
@@ -1410,7 +1406,7 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
         btn14 = types.InlineKeyboardButton('PnL', callback_data='pnl')
         markup.add(btn1,btn12,btn13)
         markup.add(btn11, row_width=1)
-        markup.add(btn2,btn3,btn4,btn5,btn6,btn7,btn14)
+        markup.add(btn2,btn3,btn4,btn5,btn6,btn14,btn7)
         bot.edit_message_text(chat_id=call.message.chat.id, disable_web_page_preview=True ,message_id=call.message.message_id, text= msg, parse_mode='Markdown', reply_markup=markup)
         
         
@@ -2284,17 +2280,10 @@ def sellix(message):
     except Exception as e:
         bot.send_message(message.chat.id, "⚠️ Message should be a number ")
     owner = message.chat.id
-    mnemonics = eval(decrypt(db_user.get_mnemonics(owner)))
     token = db_trades.get_last_ca(owner)
-    pool = get_pool(token)
-    name = get_name(token)
-    symbol = get_symbol(token)
     wallet = db_user.get_wallet(owner)
-    pair = get_pair(token)
-    lp = get_lp(token)
     bal = asyncio.run(jetton_bal(token,wallet))
     #print(call.data)
-    slip = db_user.get_slippage(owner=owner)
     if bal > initial:
         sell(message, token, initial)
         time.sleep(25)
@@ -2324,7 +2313,7 @@ def buy_x(message):
         amount = bot_fees(initial, owner)
         
         x = bot.send_message(owner, f"Attempting a buy at ${abbreviate(get_mc(token))} MCap")
-        buy = asyncio.run(jetton_swap(token, mnemonics, amount, slip=slip))
+        buy = asyncio.run(jetton_swap(token, mnemonics, amount))
         time.sleep(25)
         if buy == 1:
             ref = db_userd.get_referrer(owner)
@@ -2341,25 +2330,25 @@ def buy_x(message):
             pnl = (get_mc(token)-buy_mc)/buy_mc*100
             amt = initial
             db_trades.update(owner,token,name, buy_mc=buy_mc, buy_amount=amt)
-            msg = f"""💎 {name} ({symbol}): 🌐 {pool}
-                
-{'🟩' if round(pnl, 2) > 0.0 else '🟥'} *profit*: {1 if round(pnl, 2) > 10000 else round(pnl, 2)} % | 💎 {round((get_mc(token)/buy_mc)*initial, 2)} Ton
+            msg = f"""
+💠 *{name}* (${symbol}): 🌐 {pool} 
 
-💎 *CA*: `{token}` [🅲](https://tonscan.org/address/{token})
-
-💦 *LP*: `{pair}`
-
-📈 *MCap*: ${abbreviate(get_mc(token))} *USD* |💵 ${get_price(token)}
-
-💦 * Liquidity*: {lp} TON
-
-💡 *(24h) B {get_url(token)['pairs'][0]['txns']['h24']['buys']} | S {get_url(token)['pairs'][0]['txns']['h24']['sells']} | {get_url(token)['pairs'][0]['priceChange']['h24']}% | Vol: $ {abbreviate(get_url(token)['pairs'][0]['volume']['h24'])}*
-
-*Balance*: 
-{name}: {asyncio.run(jetton_bal(token, wallet))}
-Ton: {asyncio.run(ton_bal(mnemonics))}
-                
-                
+*Balance*:  
+{name}: {asyncio.run(jetton_bal(token, wallet))} 
+Ton: {asyncio.run(ton_bal(mnemonics))} 
+                 
+{'🟩' if round(pnl, 2) > 0.0 else '🟥'} *profit*: {1 if round(pnl, 2) > 10000 else round(pnl, 2)} % | 💎 {round((get_mc(token)/buy_mc)*initial, 2)} Ton 
+ 
+🏠 *CA*: `{token}` [🅲](https://tonscan.org/address/{token}) 
+ 
+💹 *LP*: `{pair}` 
+ 
+📈 *MCap*: ${abbreviate(get_mc(token))} *USD* |💵 ${get_price(token)} 
+ 
+♻️ * Liquidity*: {lp} TON 
+ 
+💡 *(24h) B {get_url(token)['pairs'][0]['txns']['h24']['buys']} | S {get_url(token)['pairs'][0]['txns']['h24']['sells']} | {get_url(token)['pairs'][0]['priceChange']['h24']}% | Vol: $ {abbreviate(get_url(token)['pairs'][0]['volume']['h24'])}* 
+  
                 """
             markup = types.InlineKeyboardMarkup()
             btn1 = types.InlineKeyboardButton("Buy 5 Ton ", callback_data='buys5')
@@ -2375,7 +2364,7 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
             btn14 = types.InlineKeyboardButton('PnL', callback_data='pnl')
             markup.add(btn1,btn12,btn13)
             markup.add(btn11, row_width=1)
-            markup.add(btn2,btn3,btn4,btn5,btn6,btn7,btn14)
+            markup.add(btn2,btn3,btn4,btn5,btn6,btn14,btn7)
             bot.send_message(message.chat.id, msg, parse_mode='Markdown', reply_markup=markup, disable_web_page_preview=True)
                 
         else:

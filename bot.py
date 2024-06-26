@@ -24,6 +24,7 @@ from bridge.bridge import exchange, minimum, exchange_status, output
 
 from airdrop import airdrop
 import re
+from pnl import pnl_pic
 from fees import bot_fees, ref_fees
 import telebot
 from telebot import types
@@ -74,9 +75,24 @@ def extract_ca(url: str):
     else: 
         return None
     
-def pnl_img(text):
-    url = f"https://textoverimage.moesif.com/image?image_url=https%3A%2F%2Fres.cloudinary.com%2Fdb1owt5ev%2Fimage%2Fupload%2Fv1718973675%2Fgmfrezafjuq16fq3vwfr.jpg&text={1 if text > 10000 else text}%25&text_color={'20ee19ff' if text > 0 else 'f7190dff'}&text_size=128&margin=&y_align=middle&x_align=right"
-    return url
+def extract_ca_pnl(url: str):
+    pattern = r"genpnl-(.*)"
+    
+    match = re.search(pattern, url)
+    
+    if match:
+        return match.group(1)
+    else: 
+        return None
+    
+def GenPnL(message, token):
+    owner = message.chat.id
+    name = get_name(token)
+    symbol = get_symbol(token)
+    buyamt = 0 if db_trades.get_buy_amt(owner, token) == None else db_trades.get_buy_amt(owner, token)
+    buymc = 0 if db_trades.get_buy_mc(owner, token) == None else db_trades.get_buy_mc(owner, token)
+    pnl = (get_mc(token)-buymc)/buymc*100
+    
 
 def abbreviate(x):
     abbreviations = ["", "K", "M", "B", "T", "Qd", "Qn", "Sx", "Sp", "O", "N", 
@@ -126,17 +142,20 @@ def sell(message, addr, amount):
     wallet = db_user.get_wallet(owner)
     j_bal = asyncio.run(jetton_bal(addr, wallet))
     t_bal = asyncio.run(ton_bal(mnemonics))
-    if j_bal >= amount and t_bal > 0.5:
+    if j_bal >= amount and t_bal > 0.3:
         x  = bot.send_message(owner, f"Attempting a sell at ${abbreviate(get_mc(addr))} MCap")
         dec1 = asyncio.run(update(addr))
-        dec = dec1['decimals']
+        dec = int(dec1['decimals'])
+        print(type(dec))
         decimal = 10**dec
+        print(decimal)
         j_price = asyncio.run(main_price(amount, addr, decimal))
-        sell = asyncio.run(ton_swap(addr,mnemonics,amount))
+        print(j_price)
+        selled = asyncio.run(ton_swap(addr,mnemonics,amount))
         time.sleep(30)
         amt = bot_fees(j_price, owner)
         
-        if sell == 1:
+        if selled == 1:
             ref = db_userd.get_referrer(owner)
             ref_fee = ref_fees(amt)
             get_ref_vol = db_userd.get_referrals_vol(ref)
@@ -170,6 +189,8 @@ def track(message, token):
         buy_mc = 1 if db_trades.get_buy_mc(owner, token) == None else db_trades.get_buy_mc(owner,token)
         pnl = (get_mc(token)-buy_mc)/buy_mc*100
         amt = 0 if db_trades.get_buy_amt(owner, token) == None else db_trades.get_buy_amt(owner, token)
+        x = get_url(token)
+        chart = x['pairs'][0]['url']
         msg = f"""
 💠 *{name}* (${symbol}): 🌐 {pool} 
 
@@ -177,7 +198,7 @@ def track(message, token):
 {name}: {asyncio.run(jetton_bal(token, wallet))} 
 Ton: {asyncio.run(ton_bal(mnemonics))} 
                  
-{'🟩' if round(pnl, 2) > 0.0 else '🟥'} *profit*: {1 if round(pnl, 2) > 10000 else round(pnl, 2)} % | 💎 {round((get_mc(token)/buy_mc)*amt, 2)} Ton 
+{'🟩' if round(pnl, 2) > 0.0 else '🟥'} *profit*: {1 if round(pnl, 2) > 10000 else round(pnl, 2)} % [PnL 🖼️](https://t.me/{bot_info.username}?start=genpnl-{token}) | 💎 {round((get_mc(token)/buy_mc)*amt, 2)} Ton 
  
 🏠 *CA*: `{token}` [🅲](https://tonscan.org/address/{token}) 
  
@@ -188,7 +209,8 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
 ♻️ * Liquidity*: {lp} TON 
  
 💡 *(24h) B {get_url(token)['pairs'][0]['txns']['h24']['buys']} | S {get_url(token)['pairs'][0]['txns']['h24']['sells']} | {get_url(token)['pairs'][0]['priceChange']['h24']}% | Vol: $ {abbreviate(get_url(token)['pairs'][0]['volume']['h24'])}* 
-   
+
+📊 [Dexscreener]({chart})
                 """
         markup = types.InlineKeyboardMarkup()
         btn1 = types.InlineKeyboardButton("Buy 5 Ton ", callback_data='buys5')
@@ -201,7 +223,7 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
         btn5 = types.InlineKeyboardButton("Sell 100% ", callback_data='sell100')
         btn6 = types.InlineKeyboardButton("Sell X token ", callback_data='sellx')
         btn7 = types.InlineKeyboardButton("🔃 Refresh", callback_data='sellrefresh1')
-        btn14 = types.InlineKeyboardButton('PnL', callback_data='pnl')
+        btn14 = types.InlineKeyboardButton('📌 Track', callback_data='track')
         markup.add(btn1,btn12,btn13)
         markup.add(btn11, row_width=1)
         markup.add(btn2,btn3,btn4,btn5,btn6,btn14,btn7)
@@ -289,7 +311,10 @@ Simply paste a jetton contract address to get started.
         if str(referrer).startswith('track'):
             ca = extract_ca(referrer)
             track(message, ca)
-            
+        elif str(referrer).startswith('genpnl'):
+            ca = extract_ca_pnl(referrer)
+            print(ca)
+            bot.delete_message(owner, message.message_id)    
         elif str(referrer).isdigit():
             if referrer == owner:
                 bot.send_message(owner, "You can't be your own referrer")
@@ -474,14 +499,15 @@ def tonwithdraw(message):
     bal = asyncio.run(ton_bal(mnemonics))
     try:
         if bal >= amount:
-            asyncio.run(send_ton(dest=wallet, amount=amount,mnemonics=mnemonics))
+            asyncio.run(send_ton(wallet, amount,mnemonics))
             time.sleep(15)
             msg = f"""Sent {amount} Ton to {wallet} with [Tx Hash]("https://tonscan.org/address/{wallet}#transactions")"""
-            bot.send_message(message.chat.id, msg, parse_mode='Markdown')
+            bot.send_message(message.chat.id, msg, parse_mode='Markdown', disable_web_page_preview=True)
         else:
             bot.send_message(message.chat.id, "⚠️ Amount higher than Wallet Balance")
             
     except Exception as e:
+        print(e)
         bot.send_message(message.chat.id, "⚠️ Transaction could not be prossesed")
         
     
@@ -591,14 +617,8 @@ Balance: *{asyncio.run(ton_bal(mnemonics))} Ton*
         bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=msg, reply_markup=new_markup, parse_mode='Markdown')
     
     
-    elif call.data == 'pnl':
-        amt = db_trades.get_buy_amt(owner, token)
-        buy_mc = 1 if db_trades.get_buy_mc(owner, token) == None else db_trades.get_buy_mc(owner, token)
-        pnl = (get_mc(token)-buy_mc)/buy_mc*100
-        
-        data = pnl_img(pnl)
-        cap = f"`{token}`\n\nTrade this token on NeuTon Trade Bot `https://t.me/{bot_info.username}?start={owner}` and Earn 20% from referral fees"
-        bot.send_photo(owner, data, cap, parse_mode='Markdown')
+    elif call.data == 'track':
+        bot.pin_chat_message(owner, call.message.message_id)
         
     
     elif call.data =='wwithdraw':
@@ -773,6 +793,8 @@ Once your referrals start trading, you'll receive 20% of their trading fees, dir
                 pnl = (get_mc(token)-buy_mc)/buy_mc*100
                 amt = 1
                 db_trades.update(owner,token,name, buy_mc=buy_mc, buy_amount=amt)
+                x = get_url(token)
+                chart = x['pairs'][0]['url']
                 msg = f"""
 💠 *{name}* (${symbol}): 🌐 {pool} 
 
@@ -780,7 +802,7 @@ Once your referrals start trading, you'll receive 20% of their trading fees, dir
 {name}: {asyncio.run(jetton_bal(token, wallet))} 
 Ton: {asyncio.run(ton_bal(mnemonics))} 
                  
-{'🟩' if round(pnl, 2) > 0.0 else '🟥'} *profit*: {1 if round(pnl, 2) > 10000 else round(pnl, 2)} % | 💎 {round((get_mc(token)/buy_mc)*amt, 2)} Ton 
+{'🟩' if round(pnl, 2) > 0.0 else '🟥'} *profit*: {1 if round(pnl, 2) > 10000 else round(pnl, 2)} % [PnL 🖼️](https://t.me/{bot_info.username}?start=track-{token}) | 💎 {round((get_mc(token)/buy_mc)*amt, 2)} Ton 
  
 🏠 *CA*: `{token}` [🅲](https://tonscan.org/address/{token}) 
  
@@ -791,6 +813,8 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
 ♻️ * Liquidity*: {lp} TON 
  
 💡 *(24h) B {get_url(token)['pairs'][0]['txns']['h24']['buys']} | S {get_url(token)['pairs'][0]['txns']['h24']['sells']} | {get_url(token)['pairs'][0]['priceChange']['h24']}% | Vol: $ {abbreviate(get_url(token)['pairs'][0]['volume']['h24'])}* 
+
+📊 [Dexscreener]({chart})
    
                 """
                 markup = types.InlineKeyboardMarkup()
@@ -804,7 +828,7 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
                 btn5 = types.InlineKeyboardButton("Sell 100% ", callback_data='sell100')
                 btn6 = types.InlineKeyboardButton("Sell X token ", callback_data='sellx')
                 btn7 = types.InlineKeyboardButton("🔃 Refresh", callback_data='sellrefresh')
-                btn14 = types.InlineKeyboardButton('PnL', callback_data='pnl')
+                btn14 = types.InlineKeyboardButton('📌 Track', callback_data='track')
                 markup.add(btn1,btn12,btn13)
                 markup.add(btn11, row_width=1)
                 markup.add(btn2,btn3,btn4,btn5,btn6,btn14,btn7)
@@ -841,6 +865,8 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
                 pnl = (get_mc(token)-buy_mc)/buy_mc*100
                 amt = 5
                 db_trades.update(owner,token,name, buy_mc=buy_mc, buy_amount=amt)
+                x = get_url(token)
+                chart = x['pairs'][0]['url']
                 msg = f"""
 💠 *{name}* (${symbol}): 🌐 {pool} 
 
@@ -848,7 +874,7 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
 {name}: {asyncio.run(jetton_bal(token, wallet))} 
 Ton: {asyncio.run(ton_bal(mnemonics))} 
                  
-{'🟩' if round(pnl, 2) > 0.0 else '🟥'} *profit*: {1 if round(pnl, 2) > 10000 else round(pnl, 2)} % | 💎 {round((get_mc(token)/buy_mc)*amt, 2)} Ton 
+{'🟩' if round(pnl, 2) > 0.0 else '🟥'} *profit*: {1 if round(pnl, 2) > 10000 else round(pnl, 2)} % [PnL 🖼️](https://t.me/{bot_info.username}?start=track-{token}) | 💎 {round((get_mc(token)/buy_mc)*amt, 2)} Ton 
  
 🏠 *CA*: `{token}` [🅲](https://tonscan.org/address/{token}) 
  
@@ -859,7 +885,9 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
 ♻️ * Liquidity*: {lp} TON 
  
 💡 *(24h) B {get_url(token)['pairs'][0]['txns']['h24']['buys']} | S {get_url(token)['pairs'][0]['txns']['h24']['sells']} | {get_url(token)['pairs'][0]['priceChange']['h24']}% | Vol: $ {abbreviate(get_url(token)['pairs'][0]['volume']['h24'])}* 
-   
+
+📊 [Dexscreener]({chart})  
+ 
                 """
                 markup = types.InlineKeyboardMarkup()
                 btn1 = types.InlineKeyboardButton("Buy 5 Ton ", callback_data='buys5')
@@ -872,7 +900,7 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
                 btn5 = types.InlineKeyboardButton("Sell 100% ", callback_data='sell100')
                 btn6 = types.InlineKeyboardButton("Sell X token ", callback_data='sellx')
                 btn7 = types.InlineKeyboardButton("🔃 Refresh", callback_data='sellrefresh')
-                btn14 = types.InlineKeyboardButton('PnL', callback_data='pnl')
+                btn14 = types.InlineKeyboardButton('📌 Track', callback_data='track')
                 markup.add(btn1,btn12,btn13)
                 markup.add(btn11, row_width=1)
                 markup.add(btn2,btn3,btn4,btn5,btn6,btn14,btn7)                
@@ -909,6 +937,8 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
                 pnl = (get_mc(token)-buy_mc)/buy_mc*100
                 amt = 10
                 db_trades.update(owner,token,name, buy_mc=buy_mc, buy_amount=amt)
+                x = get_url(token)
+                chart = x['pairs'][0]['url']
                 msg = f"""
 💠 *{name}* (${symbol}): 🌐 {pool} 
 
@@ -916,7 +946,7 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
 {name}: {asyncio.run(jetton_bal(token, wallet))} 
 Ton: {asyncio.run(ton_bal(mnemonics))} 
                  
-{'🟩' if round(pnl, 2) > 0.0 else '🟥'} *profit*: {1 if round(pnl, 2) > 10000 else round(pnl, 2)} % | 💎 {round((get_mc(token)/buy_mc)*amt, 2)} Ton 
+{'🟩' if round(pnl, 2) > 0.0 else '🟥'} *profit*: {1 if round(pnl, 2) > 10000 else round(pnl, 2)} % [PnL 🖼️](https://t.me/{bot_info.username}?start=track-{token}) | 💎 {round((get_mc(token)/buy_mc)*amt, 2)} Ton 
  
 🏠 *CA*: `{token}` [🅲](https://tonscan.org/address/{token}) 
  
@@ -927,7 +957,8 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
 ♻️ * Liquidity*: {lp} TON 
  
 💡 *(24h) B {get_url(token)['pairs'][0]['txns']['h24']['buys']} | S {get_url(token)['pairs'][0]['txns']['h24']['sells']} | {get_url(token)['pairs'][0]['priceChange']['h24']}% | Vol: $ {abbreviate(get_url(token)['pairs'][0]['volume']['h24'])}* 
-   
+
+📊 [Dexscreener]({chart})   
                 """
                 markup = types.InlineKeyboardMarkup()
                 btn1 = types.InlineKeyboardButton("Buy 5 Ton ", callback_data='buys5')
@@ -940,7 +971,7 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
                 btn5 = types.InlineKeyboardButton("Sell 100% ", callback_data='sell100')
                 btn6 = types.InlineKeyboardButton("Sell X token ", callback_data='sellx')
                 btn7 = types.InlineKeyboardButton("🔃 Refresh", callback_data='sellrefresh')
-                btn14 = types.InlineKeyboardButton('PnL', callback_data='pnl')
+                btn14 = types.InlineKeyboardButton('📌 Track', callback_data='track')
                 markup.add(btn1,btn12,btn13)
                 markup.add(btn11, row_width=1)
                 markup.add(btn2,btn3,btn4,btn5,btn6,btn14,btn7)
@@ -979,6 +1010,8 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
                 pnl = (get_mc(token)-buy_mc)/buy_mc*100
                 amt = 15
                 db_trades.update(owner,token,name, buy_mc=buy_mc, buy_amount=amt)
+                x = get_url(token)
+                chart = x['pairs'][0]['url']
                 msg = f"""
 💠 *{name}* (${symbol}): 🌐 {pool} 
 
@@ -986,7 +1019,7 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
 {name}: {asyncio.run(jetton_bal(token, wallet))} 
 Ton: {asyncio.run(ton_bal(mnemonics))} 
                  
-{'🟩' if round(pnl, 2) > 0.0 else '🟥'} *profit*: {1 if round(pnl, 2) > 10000 else round(pnl, 2)} % | 💎 {round((get_mc(token)/buy_mc)*amt, 2)} Ton 
+{'🟩' if round(pnl, 2) > 0.0 else '🟥'} *profit*: {1 if round(pnl, 2) > 10000 else round(pnl, 2)} % [PnL 🖼️](https://t.me/{bot_info.username}?start=track-{token}) | 💎 {round((get_mc(token)/buy_mc)*amt, 2)} Ton 
  
 🏠 *CA*: `{token}` [🅲](https://tonscan.org/address/{token}) 
  
@@ -997,7 +1030,8 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
 ♻️ * Liquidity*: {lp} TON 
  
 💡 *(24h) B {get_url(token)['pairs'][0]['txns']['h24']['buys']} | S {get_url(token)['pairs'][0]['txns']['h24']['sells']} | {get_url(token)['pairs'][0]['priceChange']['h24']}% | Vol: $ {abbreviate(get_url(token)['pairs'][0]['volume']['h24'])}* 
-   
+
+📊 [Dexscreener]({chart})  
                 """
                 markup = types.InlineKeyboardMarkup()
                 btn1 = types.InlineKeyboardButton("Buy 5 Ton ", callback_data='buys5')
@@ -1010,7 +1044,7 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
                 btn5 = types.InlineKeyboardButton("Sell 100% ", callback_data='sell100')
                 btn6 = types.InlineKeyboardButton("Sell X token ", callback_data='sellx')
                 btn7 = types.InlineKeyboardButton("🔃 Refresh", callback_data='sellrefresh')
-                btn14 = types.InlineKeyboardButton('PnL', callback_data='pnl')
+                btn14 = types.InlineKeyboardButton('📌 Track', callback_data='track')
                 markup.add(btn1,btn12,btn13)
                 markup.add(btn11, row_width=1)
                 markup.add(btn2,btn3,btn4,btn5,btn6,btn14,btn7)
@@ -1048,6 +1082,8 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
                 pnl = (get_mc(token)-buy_mc)/buy_mc*100
                 amt = 20
                 db_trades.update(owner,token,name, buy_mc=buy_mc, buy_amount=amt)
+                x = get_url(token)
+                chart = x['pairs'][0]['url']
                 msg = f"""
 💠 *{name}* (${symbol}): 🌐 {pool} 
 
@@ -1055,7 +1091,7 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
 {name}: {asyncio.run(jetton_bal(token, wallet))} 
 Ton: {asyncio.run(ton_bal(mnemonics))} 
                  
-{'🟩' if round(pnl, 2) > 0.0 else '🟥'} *profit*: {1 if round(pnl, 2) > 10000 else round(pnl, 2)} % | 💎 {round((get_mc(token)/buy_mc)*amt, 2)} Ton 
+{'🟩' if round(pnl, 2) > 0.0 else '🟥'} *profit*: {1 if round(pnl, 2) > 10000 else round(pnl, 2)} % [PnL 🖼️](https://t.me/{bot_info.username}?start=track-{token}) | 💎 {round((get_mc(token)/buy_mc)*amt, 2)} Ton 
  
 🏠 *CA*: `{token}` [🅲](https://tonscan.org/address/{token}) 
  
@@ -1066,7 +1102,8 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
 ♻️ * Liquidity*: {lp} TON 
  
 💡 *(24h) B {get_url(token)['pairs'][0]['txns']['h24']['buys']} | S {get_url(token)['pairs'][0]['txns']['h24']['sells']} | {get_url(token)['pairs'][0]['priceChange']['h24']}% | Vol: $ {abbreviate(get_url(token)['pairs'][0]['volume']['h24'])}* 
-   
+
+📊 [Dexscreener]({chart})   
                 """
                 markup = types.InlineKeyboardMarkup()
                 btn1 = types.InlineKeyboardButton("Buy 5 Ton ", callback_data='buys5')
@@ -1079,7 +1116,7 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
                 btn5 = types.InlineKeyboardButton("Sell 100% ", callback_data='sell100')
                 btn6 = types.InlineKeyboardButton("Sell X token ", callback_data='sellx')
                 btn7 = types.InlineKeyboardButton("🔃 Refresh", callback_data='sellrefresh')
-                btn14 = types.InlineKeyboardButton('PnL', callback_data='pnl')
+                btn14 = types.InlineKeyboardButton('📌 Track', callback_data='track')
                 markup.add(btn1,btn12,btn13)
                 markup.add(btn11, row_width=1)
                 markup.add(btn2,btn3,btn4,btn5,btn6,btn14,btn7)
@@ -1188,6 +1225,8 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
         buy_mc = 1 if db_trades.get_buy_mc(owner, token) == None else db_trades.get_buy_mc(owner,token)
         pnl = (get_mc(token)-buy_mc)/buy_mc*100
         amt = 0 if db_trades.get_buy_amt(owner, token) == None else db_trades.get_buy_amt(owner, token)
+        x = get_url(token)
+        chart = x['pairs'][0]['url']
         msg = f"""
 💠 *{name}* (${symbol}): 🌐 {pool} 
 
@@ -1195,7 +1234,7 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
 {name}: {asyncio.run(jetton_bal(token, wallet))} 
 Ton: {asyncio.run(ton_bal(mnemonics))} 
                  
-{'🟩' if round(pnl, 2) > 0.0 else '🟥'} *profit*: {1 if round(pnl, 2) > 10000 else round(pnl, 2)} % | 💎 {round((get_mc(token)/buy_mc)*amt, 2)} Ton 
+{'🟩' if round(pnl, 2) > 0.0 else '🟥'} *profit*: {1 if round(pnl, 2) > 10000 else round(pnl, 2)} % [PnL 🖼️](https://t.me/{bot_info.username}?start=track-{token}) | 💎 {round((get_mc(token)/buy_mc)*amt, 2)} Ton 
  
 🏠 *CA*: `{token}` [🅲](https://tonscan.org/address/{token}) 
  
@@ -1206,7 +1245,8 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
 ♻️ * Liquidity*: {lp} TON 
  
 💡 *(24h) B {get_url(token)['pairs'][0]['txns']['h24']['buys']} | S {get_url(token)['pairs'][0]['txns']['h24']['sells']} | {get_url(token)['pairs'][0]['priceChange']['h24']}% | Vol: $ {abbreviate(get_url(token)['pairs'][0]['volume']['h24'])}* 
-   
+
+📊 [Dexscreener]({chart})  
                 """
         markup = types.InlineKeyboardMarkup()
         btn1 = types.InlineKeyboardButton("Buy 5 Ton ", callback_data='buys5')
@@ -1219,7 +1259,7 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
         btn5 = types.InlineKeyboardButton("Sell 100% ", callback_data='sell100')
         btn6 = types.InlineKeyboardButton("Sell X token ", callback_data='sellx')
         btn7 = types.InlineKeyboardButton("🔃 Refresh", callback_data='sellrefresh1')
-        btn14 = types.InlineKeyboardButton('PnL', 'pnl')
+        btn14 = types.InlineKeyboardButton('📌 Track', callback_data='track')
         markup.add(btn1,btn12,btn13)
         markup.add(btn11, row_width=1)
         markup.add(btn2,btn3,btn4,btn5,btn6,btn14,btn7)
@@ -1232,6 +1272,8 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
         buy_mc = 1 if db_trades.get_buy_mc(owner, token) == None else db_trades.get_buy_mc(owner,token)
         pnl = (get_mc(token)-buy_mc)/buy_mc*100
         amt = 0 if db_trades.get_buy_amt(owner, token) == None else db_trades.get_buy_amt(owner, token)
+        x = get_url(token)
+        chart = x['pairs'][0]['url']
         msg = f"""
 💠 *{name}* (${symbol}): 🌐 {pool} 
 
@@ -1239,7 +1281,7 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
 {name}: {asyncio.run(jetton_bal(token, wallet))} 
 Ton: {asyncio.run(ton_bal(mnemonics))} 
                  
-{'🟩' if round(pnl, 2) > 0.0 else '🟥'} *profit*: {1 if round(pnl, 2) > 10000 else round(pnl, 2)} % | 💎 {round((get_mc(token)/buy_mc)*amt, 2)} Ton 
+{'🟩' if round(pnl, 2) > 0.0 else '🟥'} *profit*: {1 if round(pnl, 2) > 10000 else round(pnl, 2)} % [PnL 🖼️](https://t.me/{bot_info.username}?start=track-{token}) | 💎 {round((get_mc(token)/buy_mc)*amt, 2)} Ton 
  
 🏠 *CA*: `{token}` [🅲](https://tonscan.org/address/{token}) 
  
@@ -1250,7 +1292,8 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
 ♻️ * Liquidity*: {lp} TON 
  
 💡 *(24h) B {get_url(token)['pairs'][0]['txns']['h24']['buys']} | S {get_url(token)['pairs'][0]['txns']['h24']['sells']} | {get_url(token)['pairs'][0]['priceChange']['h24']}% | Vol: $ {abbreviate(get_url(token)['pairs'][0]['volume']['h24'])}* 
-   
+
+📊 [Dexscreener]({chart})
                 """
         markup = types.InlineKeyboardMarkup()
         btn1 = types.InlineKeyboardButton("Buy 5 Ton ", callback_data='buys5')
@@ -1263,7 +1306,7 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
         btn5 = types.InlineKeyboardButton("Sell 100% ", callback_data='sell100')
         btn6 = types.InlineKeyboardButton("Sell X token ", callback_data='sellx')
         btn7 = types.InlineKeyboardButton("🔃 Refresh", callback_data='sellrefresh')
-        btn14 = types.InlineKeyboardButton('PnL', callback_data='pnl')
+        btn14 = types.InlineKeyboardButton('📌 Track', callback_data='track')
         markup.add(btn1,btn12,btn13)
         markup.add(btn11, row_width=1)
         markup.add(btn2,btn3,btn4,btn5,btn6,btn14,btn7)
@@ -1279,6 +1322,8 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
         buy_mc = 1 if db_trades.get_buy_mc(owner, token) == None else db_trades.get_buy_mc(owner,token)
         pnl = (get_mc(token)-buy_mc)/buy_mc*100
         amt = 0 if db_trades.get_buy_amt(owner, token) == None else db_trades.get_buy_amt(owner, token)
+        x = get_url(token)
+        chart = x['pairs'][0]['url']
         msg = f"""
 💠 *{name}* (${symbol}): 🌐 {pool} 
 
@@ -1286,7 +1331,7 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
 {name}: {asyncio.run(jetton_bal(token, wallet))} 
 Ton: {asyncio.run(ton_bal(mnemonics))} 
                  
-{'🟩' if round(pnl, 2) > 0.0 else '🟥'} *profit*: {1 if round(pnl, 2) > 10000 else round(pnl, 2)} % | 💎 {round((get_mc(token)/buy_mc)*amt, 2)} Ton 
+{'🟩' if round(pnl, 2) > 0.0 else '🟥'} *profit*: {1 if round(pnl, 2) > 10000 else round(pnl, 2)} % [PnL 🖼️](https://t.me/{bot_info.username}?start=track-{token}) | 💎 {round((get_mc(token)/buy_mc)*amt, 2)} Ton 
  
 🏠 *CA*: `{token}` [🅲](https://tonscan.org/address/{token}) 
  
@@ -1297,7 +1342,8 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
 ♻️ * Liquidity*: {lp} TON 
  
 💡 *(24h) B {get_url(token)['pairs'][0]['txns']['h24']['buys']} | S {get_url(token)['pairs'][0]['txns']['h24']['sells']} | {get_url(token)['pairs'][0]['priceChange']['h24']}% | Vol: $ {abbreviate(get_url(token)['pairs'][0]['volume']['h24'])}* 
- 
+
+ 📊 [Dexscreener]({chart})
                 """
         markup = types.InlineKeyboardMarkup()
         btn1 = types.InlineKeyboardButton("Buy 5 Ton ", callback_data='buys5')
@@ -1310,7 +1356,7 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
         btn5 = types.InlineKeyboardButton("Sell 100% ", callback_data='sell100')
         btn6 = types.InlineKeyboardButton("Sell X token ", callback_data='sellx')
         btn7 = types.InlineKeyboardButton("🔃 Refresh", callback_data='sellrefresh')
-        btn14 = types.InlineKeyboardButton('PnL', callback_data='pnl')
+        btn14 = types.InlineKeyboardButton('📌 Track', callback_data='track')
         markup.add(btn1,btn12,btn13)
         markup.add(btn11, row_width=1)
         markup.add(btn2,btn3,btn4,btn5,btn6,btn14,btn7)
@@ -1326,6 +1372,8 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
         buy_mc = 1 if db_trades.get_buy_mc(owner, token) == None else db_trades.get_buy_mc(owner,token)
         pnl = (get_mc(token)-buy_mc)/buy_mc*100
         amt = 0 if db_trades.get_buy_amt(owner, token) == None else db_trades.get_buy_amt(owner, token)
+        x = get_url(token)
+        chart = x['pairs'][0]['url']
         msg = f"""
 💠 *{name}* (${symbol}): 🌐 {pool} 
 
@@ -1333,7 +1381,7 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
 {name}: {asyncio.run(jetton_bal(token, wallet))} 
 Ton: {asyncio.run(ton_bal(mnemonics))} 
                  
-{'🟩' if round(pnl, 2) > 0.0 else '🟥'} *profit*: {1 if round(pnl, 2) > 10000 else round(pnl, 2)} % | 💎 {round((get_mc(token)/buy_mc)*amt, 2)} Ton 
+{'🟩' if round(pnl, 2) > 0.0 else '🟥'} *profit*: {1 if round(pnl, 2) > 10000 else round(pnl, 2)} % [PnL 🖼️](https://t.me/{bot_info.username}?start=track-{token}) | 💎 {round((get_mc(token)/buy_mc)*amt, 2)} Ton 
  
 🏠 *CA*: `{token}` [🅲](https://tonscan.org/address/{token}) 
  
@@ -1344,7 +1392,8 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
 ♻️ * Liquidity*: {lp} TON 
  
 💡 *(24h) B {get_url(token)['pairs'][0]['txns']['h24']['buys']} | S {get_url(token)['pairs'][0]['txns']['h24']['sells']} | {get_url(token)['pairs'][0]['priceChange']['h24']}% | Vol: $ {abbreviate(get_url(token)['pairs'][0]['volume']['h24'])}* 
- 
+
+📊 [Dexscreener]({chart}) 
                 """
         markup = types.InlineKeyboardMarkup()
         btn1 = types.InlineKeyboardButton("Buy 5 Ton ", callback_data='buys5')
@@ -1357,7 +1406,7 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
         btn5 = types.InlineKeyboardButton("Sell 100% ", callback_data='sell100')
         btn6 = types.InlineKeyboardButton("Sell X token ", callback_data='sellx')
         btn7 = types.InlineKeyboardButton("🔃 Refresh", callback_data='sellrefresh')
-        btn14 = types.InlineKeyboardButton('PnL', callback_data='pnl')
+        btn14 = types.InlineKeyboardButton('📌 Track', callback_data='track')
         markup.add(btn1,btn12,btn13)
         markup.add(btn11, row_width=1)
         markup.add(btn2,btn3,btn4,btn5,btn6,btn14,btn7)
@@ -1372,6 +1421,8 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
         buy_mc = 1 if db_trades.get_buy_mc(owner, token) == None else db_trades.get_buy_mc(owner,token)
         pnl = (get_mc(token)-buy_mc)/buy_mc*100
         amt = 0 if db_trades.get_buy_amt(owner, token) == None else db_trades.get_buy_amt(owner, token)
+        x = get_url(token)
+        chart = x['pairs'][0]['url']
         msg = f"""
 💠 *{name}* (${symbol}): 🌐 {pool} 
 
@@ -1379,7 +1430,7 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
 {name}: {asyncio.run(jetton_bal(token, wallet))} 
 Ton: {asyncio.run(ton_bal(mnemonics))} 
                  
-{'🟩' if round(pnl, 2) > 0.0 else '🟥'} *profit*: {1 if round(pnl, 2) > 10000 else round(pnl, 2)} % | 💎 {round((get_mc(token)/buy_mc)*amt, 2)} Ton 
+{'🟩' if round(pnl, 2) > 0.0 else '🟥'} *profit*: {1 if round(pnl, 2) > 10000 else round(pnl, 2)} % [PnL 🖼️](https://t.me/{bot_info.username}?start=track-{token}) | 💎 {round((get_mc(token)/buy_mc)*amt, 2)} Ton 
  
 🏠 *CA*: `{token}` [🅲](https://tonscan.org/address/{token}) 
  
@@ -1390,7 +1441,8 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
 ♻️ * Liquidity*: {lp} TON 
  
 💡 *(24h) B {get_url(token)['pairs'][0]['txns']['h24']['buys']} | S {get_url(token)['pairs'][0]['txns']['h24']['sells']} | {get_url(token)['pairs'][0]['priceChange']['h24']}% | Vol: $ {abbreviate(get_url(token)['pairs'][0]['volume']['h24'])}* 
-   
+
+ 📊 [Dexscreener]({chart})   
                 """
         markup = types.InlineKeyboardMarkup()
         btn1 = types.InlineKeyboardButton("Buy 5 Ton ", callback_data='buys5')
@@ -1403,7 +1455,7 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
         btn5 = types.InlineKeyboardButton("Sell 100% ", callback_data='sell100')
         btn6 = types.InlineKeyboardButton("Sell X token ", callback_data='sellx')
         btn7 = types.InlineKeyboardButton("🔃 Refresh", callback_data='sellrefresh')
-        btn14 = types.InlineKeyboardButton('PnL', callback_data='pnl')
+        btn14 = types.InlineKeyboardButton('📌 Track', callback_data='track')
         markup.add(btn1,btn12,btn13)
         markup.add(btn11, row_width=1)
         markup.add(btn2,btn3,btn4,btn5,btn6,btn14,btn7)
@@ -2330,6 +2382,8 @@ def buy_x(message):
             pnl = (get_mc(token)-buy_mc)/buy_mc*100
             amt = initial
             db_trades.update(owner,token,name, buy_mc=buy_mc, buy_amount=amt)
+            x = get_url(token)
+            chart = x['pairs'][0]['url']
             msg = f"""
 💠 *{name}* (${symbol}): 🌐 {pool} 
 
@@ -2337,7 +2391,7 @@ def buy_x(message):
 {name}: {asyncio.run(jetton_bal(token, wallet))} 
 Ton: {asyncio.run(ton_bal(mnemonics))} 
                  
-{'🟩' if round(pnl, 2) > 0.0 else '🟥'} *profit*: {1 if round(pnl, 2) > 10000 else round(pnl, 2)} % | 💎 {round((get_mc(token)/buy_mc)*initial, 2)} Ton 
+{'🟩' if round(pnl, 2) > 0.0 else '🟥'} *profit*: {1 if round(pnl, 2) > 10000 else round(pnl, 2)} % [PnL 🖼️](https://t.me/{bot_info.username}?start=track-{token}) | 💎 {round((get_mc(token)/buy_mc)*initial, 2)} Ton 
  
 🏠 *CA*: `{token}` [🅲](https://tonscan.org/address/{token}) 
  
@@ -2348,7 +2402,8 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
 ♻️ * Liquidity*: {lp} TON 
  
 💡 *(24h) B {get_url(token)['pairs'][0]['txns']['h24']['buys']} | S {get_url(token)['pairs'][0]['txns']['h24']['sells']} | {get_url(token)['pairs'][0]['priceChange']['h24']}% | Vol: $ {abbreviate(get_url(token)['pairs'][0]['volume']['h24'])}* 
-  
+
+📊 [Dexscreener]({chart})  
                 """
             markup = types.InlineKeyboardMarkup()
             btn1 = types.InlineKeyboardButton("Buy 5 Ton ", callback_data='buys5')
@@ -2361,7 +2416,7 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
             btn5 = types.InlineKeyboardButton("Sell 100% ", callback_data='sell100')
             btn6 = types.InlineKeyboardButton("Sell X token ", callback_data='sellx')
             btn7 = types.InlineKeyboardButton("🔃 Refresh", callback_data='sellrefresh')
-            btn14 = types.InlineKeyboardButton('PnL', callback_data='pnl')
+            btn14 = types.InlineKeyboardButton('📌 Track', callback_data='track')
             markup.add(btn1,btn12,btn13)
             markup.add(btn11, row_width=1)
             markup.add(btn2,btn3,btn4,btn5,btn6,btn14,btn7)

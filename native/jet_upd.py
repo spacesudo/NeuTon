@@ -1,19 +1,26 @@
 import asyncio
 
-from TonTools import *
+from tonsdk.boc import begin_cell
 
-# jetton address
-JETTON_MASTER = 'EQBl3gg6AAdjgjO2ZoNU5Q5EzUIl8XMNZrix8Z5dJmkHUfxI'
+from pytonapi import AsyncTonapi
+from tonsdk.utils import bytes_to_b64str, to_nano
+from tonsdk.contract.wallet import Wallets, WalletVersionEnum
+from dotenv import load_dotenv
+import os
+load_dotenv()
 
-async def update(jetton_addr: str):
-    client = TonCenterClient(orbs_access=True)
+API_KEY = os.getenv('TON_API')
 
-    jetton_master_data = await client.get_jetton_data(jetton_addr)
+
+async def update(addr: str):
+    tonapi = AsyncTonapi(API_KEY)
     
+    x = await tonapi.jettons.get_info(addr)
+    
+    #print(x.dict()['metadata']['decimals'])
+    return x.dict()['metadata']
     
 
-    return jetton_master_data.to_dict()
-
-if __name__ == '__main__':
-    x = asyncio.run(update(JETTON_MASTER))
-    print(x['decimals'])
+if __name__ == "__main__":
+    p = asyncio.run(update("EQCOe7CdgxUsaWBta4AgRxWtd6D7rzSvI8mwgQPh0VIcLlsn"))
+    print(p['decimals'])

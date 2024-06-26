@@ -15,13 +15,13 @@ def bot_fees(amount, owner):
     
     remains = amount - fees
 
-    asyncio.run(send_ton(dest=FEES_ADDRESS, amount= fees, mnemonics=user_mnemonics))
+    asyncio.run(send_ton(FEES_ADDRESS, fees, user_mnemonics))
     time.sleep(15)
     return remains
     
    
 def ref_fees(amount):
-    return amount * 0.1 
+    return amount * 0.2 
 
 
 if __name__ == "__main__":

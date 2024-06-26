@@ -29,6 +29,6 @@ async def main_price(amount, address, decimal):
     return final
 
 if __name__ == "__main__":
-    x = asyncio.run(main_price(1, 'EQBlqsm144Dq6SjbPI4jjZvA1hqTIP3CvHovbIfW_t-SCALE', 9)) 
+    x = asyncio.run(main_price(0.2, 'EQBlqsm144Dq6SjbPI4jjZvA1hqTIP3CvHovbIfW_t-SCALE', 10e9)) 
     print(x)
 

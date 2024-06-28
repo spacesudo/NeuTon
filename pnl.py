@@ -8,45 +8,59 @@ def pnlimg():
         "3": "pnl3.jpg",
         "4": "pnl4.jpg"
     }
+    
+    random_key = random.choice(list(images.keys()))
+    
+    selected = images[random_key]
+    
+    return selected
 
-def pnl_pic(text1, text2: str, userid: int):
-    image = Image.open('pnl2.jpg')
-
-    img_width, img_height = image.size
-
+def pnlpic(pnl: int, symbol: str, invest: int, worth: int, userid: int):
+    
+    img = 'pnlloss.png' if pnl < 0 else 'pnlwin.png'
+    image = Image.open(img)
     draw = ImageDraw.Draw(image)
 
-    text1 = f"{text1} %"
-    font_path = 'pixel.ttf'
-    font_size = 120
+    top_left_text = f"${symbol}/TON"
+    font_path = 'semi.ttf'
+    font_size = 100
     font = ImageFont.truetype(font_path, font_size)
 
-    # Drawing the first text
-    bbox1 = draw.textbbox((0, 0), text1, font=font)
-    text_width1 = bbox1[2] - bbox1[0]
-    text_height1 = bbox1[3] - bbox1[1]
+    x_top_left = 10
+    y_top_left = 10
 
-    x1 = img_width - text_width1 - 10  
-    y1 = (img_height - text_height1) // 2
+    # Define the color "#1bc416"
+    color = "#c41616" if pnl < 0 else "#1bc416"
 
-    draw.text((x1, y1), text1, font=font, fill='lawngreen')
+    # Draw the top left text
+    draw.text((x_top_left, y_top_left), top_left_text, font=font, fill=color)
 
-    # Drawing the second text "Dave"
-    text2 = text2
-    font_path = 'pixel.ttf'
-    font_size = 50
-    font = ImageFont.truetype(font_path, font_size)
+    # Define the middle left texts
+    middle_left_text_1 = f"      {pnl}%"
+    middle_left_text_2 = f"\n\n   Invested: {invest} Ton \n   Worth: {worth} Ton"
+    font_size_middle_left_1 = 200
+    font_size_middle_left_2 = 60
+    font_middle_left_1 = ImageFont.truetype(font_path, font_size_middle_left_1)
+    font_middle_left_2 = ImageFont.truetype(font_path, font_size_middle_left_2)
 
-    bbox2 = draw.textbbox((0, 0), text2, font=font)
-    text_width2 = bbox2[2] - bbox2[0]
-    text_height2 = bbox2[3] - bbox2[1]
+    # Calculate the middle left text positions
+    bbox_middle_left_1 = draw.textbbox((0, 0), middle_left_text_1, font=font_middle_left_1)
+    text_width_middle_left_1 = bbox_middle_left_1[2] - bbox_middle_left_1[0]
+    text_height_middle_left_1 = bbox_middle_left_1[3] - bbox_middle_left_1[1]
 
-    x2 = img_width - text_width2 - 10  
-    y2 = img_height - text_height2 - 10  # Bottom right corner with a 10 pixel margin
+    bbox_middle_left_2 = draw.textbbox((0, 0), middle_left_text_2, font=font_middle_left_2)
+    text_height_middle_left_2 = bbox_middle_left_2[3] - bbox_middle_left_2[1]
 
-    draw.text((x2, y2), text2, font=font, fill='lawngreen')
+    x_middle_left_1 = 10
+    x_middle_left_2 = 10
+    y_middle_left_1 = (image.height - (text_height_middle_left_1 + text_height_middle_left_2 + 20)) // 2
+    y_middle_left_2 = y_middle_left_1 + text_height_middle_left_1 + 20
 
-    image.save(f'media/output_image{userid}.jpg')
+    # Draw the middle left texts
+    draw.text((x_middle_left_1, y_middle_left_1), middle_left_text_1, font=font_middle_left_1, fill=color)
+    draw.text((x_middle_left_2, y_middle_left_2), middle_left_text_2, font=font_middle_left_2, fill=color)
+
+    image.save(f'media/output{userid}.jpg')
     
-
-pnl_pic(500, "Test", 122)
+    
+pnlpic(-12, 'nigger', 8,5,22)

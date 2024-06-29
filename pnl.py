@@ -1,12 +1,22 @@
 from PIL import Image, ImageDraw, ImageFont
 import random
 
-def pnlimg():
+def pnlwin():
     images = {
-        "1": "pnl1.jpg",
-        "2": "pnl2.jpg",
-        "3": "pnl3.jpg",
-        "4": "pnl4.jpg"
+        "1": "pnlwin1.png",
+        "2": "pnlwin2.png",
+    }
+    
+    random_key = random.choice(list(images.keys()))
+    
+    selected = images[random_key]
+    
+    return selected
+
+def pnlloss():
+    images = {
+        "1": "pnlloss1.png",
+        "2": "pnlloss2.png",
     }
     
     random_key = random.choice(list(images.keys()))
@@ -17,7 +27,8 @@ def pnlimg():
 
 def pnlpic(pnl: int, symbol: str, invest: int, worth: int, userid: int):
     
-    img = 'pnlloss.png' if pnl < 0 else 'pnlwin.png'
+    img = pnlloss() if pnl < 0 else pnlwin()
+    
     image = Image.open(img)
     draw = ImageDraw.Draw(image)
 
@@ -63,4 +74,4 @@ def pnlpic(pnl: int, symbol: str, invest: int, worth: int, userid: int):
     image.save(f'media/output{userid}.jpg')
     
     
-pnlpic(-12, 'nigger', 8,5,22)
+pnlpic(1050, 'nigger', 8,5,22)

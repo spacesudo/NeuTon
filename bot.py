@@ -24,7 +24,7 @@ from bridge.bridge import exchange, minimum, exchange_status, output
 
 from airdrop import airdrop
 import re
-from pnl import pnl_pic
+from pnl import pnlpic
 from fees import bot_fees, ref_fees
 import telebot
 from telebot import types
@@ -241,6 +241,26 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
         bot.send_message(owner, "Zero Token Balance")
 
 #Dev commands 
+
+@bot.message_handler(commands=['getstats'])
+def getstats(message):
+    print(message.from_user.id)
+    messager = message.chat.id
+    if str(messager) == "7034272819" or str(messager) == "6219754372":
+        msg = ""
+        stats = db_userd.get_users()
+        for stat in stats:
+            if stat[4] >= 1.0: 
+                msg += f"{stat[1]}, {stat[4]}\n"
+                db_userd.update_referrals_vol(0.0, stat[0])
+            print(msg)    
+        with open('pays.txt', 'w') as f:
+            f.writelines(msg)
+        doc = open('pays.txt', 'r')
+        bot.send_document(messager,doc)
+        
+                
+
 
 @bot.message_handler(commands=['broadcast'])
 def broadcast(message):

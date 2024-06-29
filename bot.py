@@ -91,15 +91,21 @@ def GenPnL(message, token):
     symbol = get_symbol(token)
     buyamt = 0 if db_trades.get_buy_amt(owner, token) == None else db_trades.get_buy_amt(owner, token)
     buymc = 1 if db_trades.get_buy_mc(owner, token) == None else db_trades.get_buy_mc(owner, token)
-    pnl = (get_mc(token)-buymc)/buymc*100
+    pnl = 1 if round((get_mc(token)-buymc)/buymc*100, 2) > 10000 else round((get_mc(token)-buymc)/buymc*100, 2)
+    worth = 1 if round((get_mc(token)/buymc)*buyamt, 2) > 10000 else round((get_mc(token)/buymc)*buyamt, 2)
+    
+    pnlpic(pnl,symbol,buyamt, worth, owner)
+    
+    photo = open(f'media/output{owner}.jpg', 'rb')
     
     msg = f"""{'💀' if pnl < 0 else '🚀'} {1 if pnl > 10000 else round(pnl, 2)}% {symbol}/TON 
 
 Earn 20% commissions by sharing your referral link 
+
 `https://t.me/{bot_info.username}?start={owner}-{token}`
     
     """
-    bot.send_message(owner, msg, parse_mode='Markdown')
+    bot.send_photo(owner, photo, msg)
     
 
 def abbreviate(x):

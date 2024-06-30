@@ -105,20 +105,23 @@ Earn 20% commissions by sharing your referral link
 `https://t.me/{bot_info.username}?start={owner}-{token}`
     
     """
-    bot.send_photo(owner, photo, msg)
+    bot.send_photo(owner, photo, msg, 'Markdown')
     
 
 def abbreviate(x):
     abbreviations = ["", "K", "M", "B", "T", "Qd", "Qn", "Sx", "Sp", "O", "N", 
     "De", "Ud", "DD"]
-    thing = "1"
+    
+    if x < 1000:
+        return str(x)
+    
     a = 0
-    while len(thing) < len(str(x)) - 3:
-        thing += "000"
+    while x >= 1000 and a < len(abbreviations) - 1:
+        x /= 1000.0
         a += 1
-    b = int(thing)
-    thing = round(x / b, 2)
-    return str(thing) + " " + abbreviations[a]
+    
+    return f"{x:.2f} {abbreviations[a]}"
+
 
 def sbuy(message, token, amt):
     owner = message.chat.id
@@ -310,7 +313,7 @@ def start(message):
     owner = message.chat.id
     mnemonics = gen_mnemonics() if db_user.get_wallet(owner) == None else eval(decrypt(db_user.get_mnemonics(owner)))
     wallet_address = get_addr(mnemonics)
-    welcom = f"""*Welcome to Neuton Trade Bot!*
+    welcom = f"""*Welcome to NeuTon Trade Bot !*
 
 Experience the fastest Ton Blockchain trading bot.
 
@@ -407,7 +410,7 @@ Pass Phrase:
     
 @bot.message_handler(commands=['support'])
 def support(message):
-    bot.reply_to(message, "For help or support join the official support community @zerohexdave")
+    bot.reply_to(message, "For help or support join the official support community https://t.me/neuton_support\n You can read the docs for detailed example on bot usage https://neuton-bot.gitbook.io/neuton-trade-bot")
 
 @bot.message_handler(commands=['referrals'])
 def ree(message):
@@ -535,7 +538,7 @@ def tonwithdraw(message):
         if bal >= amount:
             asyncio.run(send_ton(wallet, amount,mnemonics))
             time.sleep(15)
-            msg = f"""Sent {amount} Ton to {wallet} with [Tx Hash]("https://tonscan.org/address/{wallet}#transactions")"""
+            msg = f"""Sent {amount} Ton to {wallet} with [Tx Hash](https://tonscan.org/address/{wallet}#transactions)"""
             bot.send_message(message.chat.id, msg, parse_mode='Markdown', disable_web_page_preview=True)
         else:
             bot.send_message(message.chat.id, "⚠️ Amount higher than Wallet Balance")
@@ -810,7 +813,7 @@ Once your referrals start trading, you'll receive 20% of their trading fees, dir
             amount = bot_fees(1, owner)
             
             x = bot.send_message(owner, f"Attempting a buy at ${abbreviate(get_mc(token))} MCap")
-            buy = asyncio.run(jetton_swap(token, mnemonics, amount, slip))
+            buy = asyncio.run(jetton_swap(token, mnemonics, amount))
             time.sleep(25)
             if buy == 1:
                 ref = db_userd.get_referrer(owner)

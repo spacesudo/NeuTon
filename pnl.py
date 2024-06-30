@@ -73,5 +73,5 @@ def pnlpic(pnl: int, symbol: str, invest: int, worth: int, userid: int):
 
     image.save(f'media/output{userid}.jpg')
     
-    
-pnlpic(1050, 'nigger', 8,5,22)
+if __name__ == "__main__":    
+    pnlpic(1050, 'nigger', 8,5,22)

@@ -25,7 +25,7 @@ from bridge.bridge import exchange, minimum, exchange_status, output
 from airdrop import airdrop
 import re
 from pnl import pnlpic
-from fees import bot_fees, ref_fees
+from fees import bot_fees, ref_fees, sell_fees
 import telebot
 from telebot import types
 from telebot.util import antiflood, extract_arguments
@@ -170,7 +170,8 @@ def sell(message, addr, amount):
         print(j_price)
         selled = asyncio.run(ton_swap(addr,mnemonics,amount))
         time.sleep(30)
-        amt = bot_fees(j_price, owner)
+        x = bot_fees(j_price, owner)
+        amt = sell_fees(j_price)
         
         if selled == 1:
             ref = db_userd.get_referrer(owner)
@@ -576,7 +577,7 @@ def trade(message):
         markup = types.InlineKeyboardMarkup(row_width=3)
         btn1 = types.InlineKeyboardButton("🔃 Refresh", callback_data='refresh_view')
         btn2 = types.InlineKeyboardButton("📊 Chart", url=f"{chart}")
-        btn3 = types.InlineKeyboardButton('🔎 Scan', url="https://t.me/zerohexdave")
+        btn3 = types.InlineKeyboardButton('🔎 Scan', url=f"https://t.me/TonChainScannerBot?start={token}")
         btn4 = types.InlineKeyboardButton('💰Buy 1 Ton', callback_data='buy1')
         btn5 = types.InlineKeyboardButton('💰 Buy 5 Ton', callback_data='buy5')
         btn6 = types.InlineKeyboardButton('💰 Buy 10 Ton', callback_data='buy10')
@@ -1176,7 +1177,7 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
         markup = types.InlineKeyboardMarkup(row_width=3)
         btn1 = types.InlineKeyboardButton("🔃 Refresh", callback_data='refresh_view1')
         btn2 = types.InlineKeyboardButton("📊 Chart", url=f"{chart}")
-        btn3 = types.InlineKeyboardButton('🔎 Scan', url="https://t.me/zerohexdave")
+        btn3 = types.InlineKeyboardButton('🔎 Scan', url=f"https://t.me/TonChainScannerBot?start={token}")
         btn4 = types.InlineKeyboardButton('💰Buy 1 Ton', callback_data='buy1')
         btn5 = types.InlineKeyboardButton('💰 Buy 5 Ton', callback_data='buy5')
         btn6 = types.InlineKeyboardButton('💰 Buy 10 Ton', callback_data='buy10')
@@ -1220,7 +1221,7 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
         markup = types.InlineKeyboardMarkup(row_width=3)
         btn1 = types.InlineKeyboardButton("🔃 Refresh", callback_data='refresh_view')
         btn2 = types.InlineKeyboardButton("📊 Chart", url=f"{chart}")
-        btn3 = types.InlineKeyboardButton('🔎 Scan', url="https://t.me/zerohexdave")
+        btn3 = types.InlineKeyboardButton('🔎 Scan', url=f"https://t.me/TonChainScannerBot?start={token}")
         btn4 = types.InlineKeyboardButton('💰Buy 1 Ton', callback_data='buy1')
         btn5 = types.InlineKeyboardButton('💰 Buy 5 Ton', callback_data='buy5')
         btn6 = types.InlineKeyboardButton('💰 Buy 10 Ton', callback_data='buy10')

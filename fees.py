@@ -19,13 +19,19 @@ def bot_fees(amount, owner):
     time.sleep(15)
     return remains
     
-   
+def sell_fees(amount):
+    charges = 0.01
+    
+    fees = amount * charges 
+    
+    return fees
+  
 def ref_fees(amount):
     return amount * 0.2 
 
 
 if __name__ == "__main__":
-    print(ref_fees(100))
+    print(sell_fees(100))
 
     
     

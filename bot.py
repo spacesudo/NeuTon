@@ -128,16 +128,17 @@ def sbuy(message, token, amt):
     slip = db_user.get_slippage(owner=owner)
     mnemonics = eval(decrypt(db_user.get_mnemonics(owner)))
     wallet = db_user.get_wallet(owner)
-    bal = asyncio.run(ton_bal(mnemonics))
+    bal = ton_bal(wallet)
     if bal > amt:
         asyncio.run(deploy(mnemonics))
         amount = bot_fees(amt, owner)
         x = bot.send_message(owner, f"Attempting a buy at ${abbreviate(get_mc(token))} MCap")
         buy = asyncio.run(jetton_swap(token, mnemonics, amount))
-        time.sleep(25)
+        time.sleep(5)
         if buy == 1:
             ref = db_userd.get_referrer(owner)
-            ref_fee = ref_fees(amount)
+            am = sell_fees(amt)
+            ref_fee = ref_fees(am)
             get_ref_vol = db_userd.get_referrals_vol(ref)
             add_ref_vol = get_ref_vol + ref_fee
             db_userd.update_referrals_vol(add_ref_vol, ref)
@@ -158,7 +159,7 @@ def sell(message, addr, amount):
     mnemonics = eval(decrypt(db_user.get_mnemonics(owner)))
     wallet = db_user.get_wallet(owner)
     j_bal = asyncio.run(jetton_bal(addr, wallet))
-    t_bal = asyncio.run(ton_bal(mnemonics))
+    t_bal = ton_bal(wallet)
     if j_bal >= amount and t_bal > 0.3:
         x  = bot.send_message(owner, f"Attempting a sell at ${abbreviate(get_mc(addr))} MCap")
         dec1 = asyncio.run(update(addr))
@@ -169,7 +170,7 @@ def sell(message, addr, amount):
         j_price = asyncio.run(main_price(amount, addr, decimal))
         print(j_price)
         selled = asyncio.run(ton_swap(addr,mnemonics,amount))
-        time.sleep(30)
+        time.sleep(5)
         x = bot_fees(j_price, owner)
         amt = sell_fees(j_price)
         
@@ -214,7 +215,7 @@ def track(message, token):
 
 *Balance*:  
 {name}: {asyncio.run(jetton_bal(token, wallet))} 
-Ton: {asyncio.run(ton_bal(mnemonics))} 
+Ton: {ton_bal(wallet)} 
                  
 {'🟩' if round(pnl, 2) > 0.0 else '🟥'} *profit*: {1 if round(pnl, 2) > 10000 else round(pnl, 2)} % [PnL 🖼️](https://t.me/{bot_info.username}?start=genpnl-{token}) | 💎 {round((get_mc(token)/buy_mc)*amt, 2)} Ton 
  
@@ -332,7 +333,7 @@ Simply paste a jetton contract address to get started.
     markup = types.InlineKeyboardMarkup(row_width=2)
     
     btn1 = types.InlineKeyboardButton(f"{wallet_address[:10]}...", callback_data="wal")
-    btn2 = types.InlineKeyboardButton(f"{asyncio.run(ton_bal(mnemonics))} Ton", callback_data='us')
+    btn2 = types.InlineKeyboardButton(f"{ton_bal(wallet_address)} Ton", callback_data='us')
     btn3 = types.InlineKeyboardButton("💳 Wallet", callback_data='wallett')
     btn4 = types.InlineKeyboardButton("Positions", callback_data="position")
     btn7 = types.InlineKeyboardButton("Bridge", callback_data='bridge')
@@ -437,7 +438,7 @@ Once your referrals start trading, you'll receive 20% of their trading fees, dir
 
 *Referrals*: {db_userd.get_referrals(owner)}
 
-*Rewards*: {round(db_userd.get_referrals_vol(owner), 2)}
+*Rewards*: {round(db_userd.get_referrals_vol(owner), 5)}
 """
 
     bot.send_message(owner, msg, 'Markdown',reply_markup=markup)
@@ -534,7 +535,7 @@ def tonwithdraw(message):
     amount = float(all[1])
     print(wallet)
     print(amount)
-    bal = asyncio.run(ton_bal(mnemonics))
+    bal = ton_bal(wallet)
     try:
         if bal >= amount:
             asyncio.run(send_ton(wallet, amount,mnemonics))
@@ -599,7 +600,7 @@ def trade(message):
 
 *Balance*:  
  
-Ton: {asyncio.run(ton_bal(mnemonics))}
+Ton: {ton_bal(wallet)}
  
 💎 *CA*: `{token}` [🅲](https://tonscan.org/address/{token}) 
  
@@ -641,7 +642,7 @@ def callback_handler(call):
         mnemonics = eval(decrypt(db_user.get_mnemonics(owner)))
         msg = f"""Wallet Adresss: `{db_user.get_wallet(owner)}`
         
-Balance: *{asyncio.run(ton_bal(mnemonics))} Ton*
+Balance: *{ton_bal(wallet)} Ton*
         """
         new_markup = types.InlineKeyboardMarkup(row_width=2)
         btn1 = types.InlineKeyboardButton('🏦 Withdraw', callback_data='wwithdraw')
@@ -670,6 +671,9 @@ Balance: *{asyncio.run(ton_bal(mnemonics))} Ton*
 `{db_user.get_wallet(owner)}` (tap to copy)
 
 Manually Send ton to the address above 
+
+*Do not send Ton Space to this Account!!!*
+
         """
         
         markup = types.InlineKeyboardMarkup()
@@ -725,7 +729,7 @@ Click the button below to continue.
         mnemonics = eval(decrypt(db_user.get_mnemonics(owner)))
         msg = f"""Wallet Adresss : `{db_user.get_wallet(owner)}`
         
-Balance : *{asyncio.run(ton_bal(mnemonics))} Ton*
+Balance : *{ton_bal(wallet)} Ton*
         """
         new_markup = types.InlineKeyboardMarkup(row_width=2)
         btn1 = types.InlineKeyboardButton('🏦 Withdraw', callback_data='wwithdraw')
@@ -749,7 +753,7 @@ Balance : *{asyncio.run(ton_bal(mnemonics))} Ton*
         mnemonics = eval(decrypt(db_user.get_mnemonics(owner)))
         msg = f"""Wallet Adresss : `{db_user.get_wallet(owner)}`
         
-Balance : *{asyncio.run(ton_bal(mnemonics))} Ton*
+Balance : *{ton_bal(wallet)} Ton*
         """
         new_markup = types.InlineKeyboardMarkup(row_width=2)
         btn1 = types.InlineKeyboardButton('🏦 Withdraw', callback_data='wwithdraw')
@@ -796,7 +800,7 @@ Once your referrals start trading, you'll receive 20% of their trading fees, dir
 
 *Referrals*: {db_userd.get_referrals(owner)}
 
-*Rewards*: {round(db_userd.get_referrals_vol(owner), 2)}
+*Rewards*: {round(db_userd.get_referrals_vol(owner), 5)}
 """
 
         bot.send_message(owner, msg, 'Markdown',reply_markup=markup)
@@ -806,7 +810,7 @@ Once your referrals start trading, you'll receive 20% of their trading fees, dir
         bot.delete_message(owner, call.message.message_id)
         
     elif call.data == 'buy1':
-        bal = asyncio.run(ton_bal(mnemonics))
+        bal = ton_bal(wallet)
         slip = db_user.get_slippage(owner)
         #print(call.data)
         if bal > 1:
@@ -815,10 +819,11 @@ Once your referrals start trading, you'll receive 20% of their trading fees, dir
             
             x = bot.send_message(owner, f"Attempting a buy at ${abbreviate(get_mc(token))} MCap")
             buy = asyncio.run(jetton_swap(token, mnemonics, amount))
-            time.sleep(25)
+            time.sleep(5)
             if buy == 1:
                 ref = db_userd.get_referrer(owner)
-                ref_fee = ref_fees(amount)
+                am = sell_fees(1)
+                ref_fee = ref_fees(am)
                 get_ref_vol = db_userd.get_referrals_vol(ref)
                 add_ref_vol = get_ref_vol + ref_fee
                 db_userd.update_referrals_vol(add_ref_vol, ref)
@@ -838,7 +843,7 @@ Once your referrals start trading, you'll receive 20% of their trading fees, dir
 
 *Balance*:  
 {name}: {asyncio.run(jetton_bal(token, wallet))} 
-Ton: {asyncio.run(ton_bal(mnemonics))} 
+Ton: {ton_bal(wallet)} 
                  
 {'🟩' if round(pnl, 2) > 0.0 else '🟥'} *profit*: {1 if round(pnl, 2) > 10000 else round(pnl, 2)} % [PnL 🖼️](https://t.me/{bot_info.username}?start=track-{token}) | 💎 {round((get_mc(token)/buy_mc)*amt, 2)} Ton 
  
@@ -879,7 +884,7 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
             
             
     elif call.data == 'buy5':
-        bal = asyncio.run(ton_bal(mnemonics))
+        bal = ton_bal(wallet)
         slip = db_user.get_slippage(owner)
         #print(call.data)
         if bal > 5:
@@ -887,10 +892,11 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
             amount = bot_fees(5, owner)
             x = bot.send_message(owner, f"Attempting a buy at ${abbreviate(get_mc(token))} MCap")
             buy = asyncio.run(jetton_swap(token, mnemonics, amount))
-            time.sleep(25)
+            time.sleep(5)
             if buy == 1:
                 ref = db_userd.get_referrer(owner)
-                ref_fee = ref_fees(amount)
+                am = sell_fees(5)
+                ref_fee = ref_fees(am)
                 get_ref_vol = db_userd.get_referrals_vol(ref)
                 add_ref_vol = get_ref_vol + ref_fee
                 db_userd.update_referrals_vol(add_ref_vol, ref)
@@ -910,7 +916,7 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
 
 *Balance*:  
 {name}: {asyncio.run(jetton_bal(token, wallet))} 
-Ton: {asyncio.run(ton_bal(mnemonics))} 
+Ton: {ton_bal(wallet)} 
                  
 {'🟩' if round(pnl, 2) > 0.0 else '🟥'} *profit*: {1 if round(pnl, 2) > 10000 else round(pnl, 2)} % [PnL 🖼️](https://t.me/{bot_info.username}?start=track-{token}) | 💎 {round((get_mc(token)/buy_mc)*amt, 2)} Ton 
  
@@ -951,7 +957,7 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
             
             
     elif call.data == "buy10":
-        bal = asyncio.run(ton_bal(mnemonics))
+        bal = ton_bal(wallet)
         slip = db_user.get_slippage(owner)
         #print(call.data)
         if bal > 10:
@@ -959,10 +965,11 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
             amount = bot_fees(10, owner)
             x = bot.send_message(owner, f"Attempting a buy at ${abbreviate(get_mc(token))} MCap")
             buy = asyncio.run(jetton_swap(token, mnemonics, amount))
-            time.sleep(25)
+            time.sleep(5)
             if buy == 1:
                 ref = db_userd.get_referrer(owner)
-                ref_fee = ref_fees(amount)
+                am = sell_fees(10)
+                ref_fee = ref_fees(am)
                 get_ref_vol = db_userd.get_referrals_vol(ref)
                 add_ref_vol = get_ref_vol + ref_fee
                 db_userd.update_referrals_vol(add_ref_vol, ref)
@@ -982,7 +989,7 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
 
 *Balance*:  
 {name}: {asyncio.run(jetton_bal(token, wallet))} 
-Ton: {asyncio.run(ton_bal(mnemonics))} 
+Ton: {ton_bal(wallet)} 
                  
 {'🟩' if round(pnl, 2) > 0.0 else '🟥'} *profit*: {1 if round(pnl, 2) > 10000 else round(pnl, 2)} % [PnL 🖼️](https://t.me/{bot_info.username}?start=track-{token}) | 💎 {round((get_mc(token)/buy_mc)*amt, 2)} Ton 
  
@@ -1023,7 +1030,7 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
     
     
     elif call.data == "buy15":
-        bal = asyncio.run(ton_bal(mnemonics))
+        bal = ton_bal(wallet)
         slip = db_user.get_slippage(owner)
         #print(call.data)
         if bal > 15:
@@ -1032,10 +1039,11 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
             
             x = bot.send_message(owner, f"Attempting a buy at ${abbreviate(get_mc(token))} MCap")
             buy = asyncio.run(jetton_swap(token, mnemonics, amount))
-            time.sleep(25)
+            time.sleep(5)
             if buy == 1:
                 ref = db_userd.get_referrer(owner)
-                ref_fee = ref_fees(amount)
+                am = sell_fees(15)
+                ref_fee = ref_fees(am)
                 get_ref_vol = db_userd.get_referrals_vol(ref)
                 add_ref_vol = get_ref_vol + ref_fee
                 db_userd.update_referrals_vol(add_ref_vol, ref)
@@ -1055,7 +1063,7 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
 
 *Balance*:  
 {name}: {asyncio.run(jetton_bal(token, wallet))} 
-Ton: {asyncio.run(ton_bal(mnemonics))} 
+Ton: {ton_bal(wallet)} 
                  
 {'🟩' if round(pnl, 2) > 0.0 else '🟥'} *profit*: {1 if round(pnl, 2) > 10000 else round(pnl, 2)} % [PnL 🖼️](https://t.me/{bot_info.username}?start=track-{token}) | 💎 {round((get_mc(token)/buy_mc)*amt, 2)} Ton 
  
@@ -1095,7 +1103,7 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
             
             
     elif call.data == "buy20":
-        bal = asyncio.run(ton_bal(mnemonics))
+        bal = ton_bal(wallet)
         slip = db_user.get_slippage(owner)
         #print(call.data)
         if bal > 20:
@@ -1104,10 +1112,11 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
             
             x = bot.send_message(owner, f"Attempting a buy at ${abbreviate(get_mc(token))} MCap")
             buy = asyncio.run(jetton_swap(token, mnemonics, amount))
-            time.sleep(25)
+            time.sleep(5)
             if buy == 1:
                 ref = db_userd.get_referrer(owner)
-                ref_fee = ref_fees(amount)
+                am = sell_fees(20)
+                ref_fee = ref_fees(am)
                 get_ref_vol = db_userd.get_referrals_vol(ref)
                 add_ref_vol = get_ref_vol + ref_fee
                 db_userd.update_referrals_vol(add_ref_vol, ref)
@@ -1127,7 +1136,7 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
 
 *Balance*:  
 {name}: {asyncio.run(jetton_bal(token, wallet))} 
-Ton: {asyncio.run(ton_bal(mnemonics))} 
+Ton: {ton_bal(wallet)} 
                  
 {'🟩' if round(pnl, 2) > 0.0 else '🟥'} *profit*: {1 if round(pnl, 2) > 10000 else round(pnl, 2)} % [PnL 🖼️](https://t.me/{bot_info.username}?start=track-{token}) | 💎 {round((get_mc(token)/buy_mc)*amt, 2)} Ton 
  
@@ -1197,7 +1206,7 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
 
 *Balance*:  
  
-Ton: {asyncio.run(ton_bal(mnemonics))}
+Ton: {ton_bal(wallet)}
  
 💎 *CA*: `{token}` [🅲](https://tonscan.org/address/{token}) 
  
@@ -1240,7 +1249,7 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
 
 *Balance*:  
  
-Ton: {asyncio.run(ton_bal(mnemonics))}
+Ton: {ton_bal(wallet)}
  
 💎 *CA*: `{token}` [🅲](https://tonscan.org/address/{token}) 
  
@@ -1270,7 +1279,7 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
 
 *Balance*:  
 {name}: {asyncio.run(jetton_bal(token, wallet))} 
-Ton: {asyncio.run(ton_bal(mnemonics))} 
+Ton: {ton_bal(wallet)} 
                  
 {'🟩' if round(pnl, 2) > 0.0 else '🟥'} *profit*: {1 if round(pnl, 2) > 10000 else round(pnl, 2)} % [PnL 🖼️](https://t.me/{bot_info.username}?start=track-{token}) | 💎 {round((get_mc(token)/buy_mc)*amt, 2)} Ton 
  
@@ -1317,7 +1326,7 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
 
 *Balance*:  
 {name}: {asyncio.run(jetton_bal(token, wallet))} 
-Ton: {asyncio.run(ton_bal(mnemonics))} 
+Ton: {ton_bal(wallet)} 
                  
 {'🟩' if round(pnl, 2) > 0.0 else '🟥'} *profit*: {1 if round(pnl, 2) > 10000 else round(pnl, 2)} % [PnL 🖼️](https://t.me/{bot_info.username}?start=track-{token}) | 💎 {round((get_mc(token)/buy_mc)*amt, 2)} Ton 
  
@@ -1367,7 +1376,7 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
 
 *Balance*:  
 {name}: {asyncio.run(jetton_bal(token, wallet))} 
-Ton: {asyncio.run(ton_bal(mnemonics))} 
+Ton: {ton_bal(wallet)} 
                  
 {'🟩' if round(pnl, 2) > 0.0 else '🟥'} *profit*: {1 if round(pnl, 2) > 10000 else round(pnl, 2)} % [PnL 🖼️](https://t.me/{bot_info.username}?start=track-{token}) | 💎 {round((get_mc(token)/buy_mc)*amt, 2)} Ton 
  
@@ -1417,7 +1426,7 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
 
 *Balance*:  
 {name}: {asyncio.run(jetton_bal(token, wallet))} 
-Ton: {asyncio.run(ton_bal(mnemonics))} 
+Ton: {ton_bal(wallet)} 
                  
 {'🟩' if round(pnl, 2) > 0.0 else '🟥'} *profit*: {1 if round(pnl, 2) > 10000 else round(pnl, 2)} % [PnL 🖼️](https://t.me/{bot_info.username}?start=track-{token}) | 💎 {round((get_mc(token)/buy_mc)*amt, 2)} Ton 
  
@@ -1466,7 +1475,7 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
 
 *Balance*:  
 {name}: {asyncio.run(jetton_bal(token, wallet))} 
-Ton: {asyncio.run(ton_bal(mnemonics))} 
+Ton: {ton_bal(wallet)} 
                  
 {'🟩' if round(pnl, 2) > 0.0 else '🟥'} *profit*: {1 if round(pnl, 2) > 10000 else round(pnl, 2)} % [PnL 🖼️](https://t.me/{bot_info.username}?start=track-{token}) | 💎 {round((get_mc(token)/buy_mc)*amt, 2)} Ton 
  
@@ -1505,7 +1514,7 @@ Ton: {asyncio.run(ton_bal(mnemonics))}
         
         amount = token_bal * 1
         sell(call.message, token, amount)
-        time.sleep(10)
+        time.sleep(5)
         bot.delete_message(owner, call.message.message_id)
         
     elif call.data == 'sellx':
@@ -2376,7 +2385,7 @@ def sellix(message):
     #print(call.data)
     if bal > initial:
         sell(message, token, initial)
-        time.sleep(25)
+        time.sleep(5)
         
         
 def buy_x(message):
@@ -2395,7 +2404,7 @@ def buy_x(message):
     wallet = db_user.get_wallet(owner)
     pair = get_pair(token)
     lp = get_lp(token)
-    bal = asyncio.run(ton_bal(mnemonics))
+    bal = ton_bal(wallet)
     #print(call.data)
     slip = db_user.get_slippage(owner)
     if bal > initial:
@@ -2404,10 +2413,11 @@ def buy_x(message):
         
         x = bot.send_message(owner, f"Attempting a buy at ${abbreviate(get_mc(token))} MCap")
         buy = asyncio.run(jetton_swap(token, mnemonics, amount))
-        time.sleep(25)
+        time.sleep(5)
         if buy == 1:
             ref = db_userd.get_referrer(owner)
-            ref_fee = ref_fees(amount)
+            am = sell_fees(amount)
+            ref_fee = ref_fees(am)
             get_ref_vol = db_userd.get_referrals_vol(ref)
             add_ref_vol = get_ref_vol + ref_fee
             db_userd.update_referrals_vol(add_ref_vol, ref)
@@ -2427,7 +2437,7 @@ def buy_x(message):
 
 *Balance*:  
 {name}: {asyncio.run(jetton_bal(token, wallet))} 
-Ton: {asyncio.run(ton_bal(mnemonics))} 
+Ton: {ton_bal(wallet)} 
                  
 {'🟩' if round(pnl, 2) > 0.0 else '🟥'} *profit*: {1 if round(pnl, 2) > 10000 else round(pnl, 2)} % [PnL 🖼️](https://t.me/{bot_info.username}?start=track-{token}) | 💎 {round((get_mc(token)/buy_mc)*initial, 2)} Ton 
  

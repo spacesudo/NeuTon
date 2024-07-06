@@ -17,8 +17,6 @@ async def import_wallet(mnemonics):
 
 
 if __name__ == "__main__":
-    mnemonics = ['guard', 'remain', 'ramp', 'inquiry', 'legal', 'razor', 'entire', 'course', 'fish', 'pride', 'dynamic', 'eyebrow', 'print', 'grab', 'scare', 'same', 'dolphin', 'total', 'zone', 'chest', 'vivid', 'you', 'attract', 'normal']
-    #wallet =  import_wallet(mnemonics)
-    #print(wallet)
+    mnemonics = ""
     x = asyncio.run(import_wallet(mnemonics))
     print(x)

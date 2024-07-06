@@ -2,35 +2,42 @@ import asyncio
 from genwallet import import_wallet
 #from mnemonics import mnemonics
 from TonTools import *
+import os
+from dotenv import load_dotenv
+from pytonapi import Tonapi, AsyncTonapi
 
-#api_key = "AEWQYU5YMJ4JHWYAAAAOUQ5HX3HGCMDUL227AL6ZPYKC6JXR6JREEGRZ5AJWNAX6GLGO5MI"
-# jetton address
-JETTON_MASTER = 'EQBl3gg6AAdjgjO2ZoNU5Q5EzUIl8XMNZrix8Z5dJmkHUfxI'
+load_dotenv()
 
-async def jetton_bal(jetton_addr, owner_addr):
-    #client = TonApiClient(key=api_key)
-    client = TonCenterClient(orbs_access=True)
+api_key = os.getenv('TON_API')
+
+
+async def jetton_bal(jetton, wallet):
     try:
-        jetton_wallet = await Jetton(jetton_addr, client).get_jetton_wallet(owner_address= owner_addr)
-        await jetton_wallet.update()
-        jetton_wallet_data = jetton_wallet
+        tonapi = AsyncTonapi(api_key)
         
-        x = jetton_wallet_data.to_dict()
-        return x['balance'] / 10**9
-    
+        account =  await tonapi.accounts.get_jetton_balance(wallet, jetton)
+        
+        ini = account.dict()['balance']
+        
+        dec = account.dict()['jetton']['decimals']
+        
+        return int(ini)/10**dec
     except Exception as e:
         return 0
+    
 
+def ton_bal(wallet):
     
+    tonapi = Tonapi(api_key)
     
-async def ton_bal(mnemonics):
-    client = TonCenterClient(orbs_access=True)
-    wallet = Wallet(provider=client, mnemonics= mnemonics, version='v4r2')
-    #print(wallet.address)
-    bal = await wallet.get_balance()
-    baln = bal/10**9
-    return baln
+    account =  tonapi.accounts.get_info(wallet)
+    
+    bal = account.balance.to_amount()
+    
+    return bal
 
 if __name__ == '__main__':
+    from mnemonics import mnemonics
     print(asyncio.run(jetton_bal('EQBl3gg6AAdjgjO2ZoNU5Q5EzUIl8XMNZrix8Z5dJmkHUfxI', 'UQDLzebYWhJaIt5YbZ5vz_glIbfqP7PxNg9V54HW3jSIhDPe')))
-    #asyncio.run(ton_bal())
+    print(ton_bal('UQDLzebYWhJaIt5YbZ5vz_glIbfqP7PxNg9V54HW3jSIhDPe'))
+    print(asyncio.run(jetton_bal('EQBzDjzzpN6PaLK2VxddADaPdNAVAbczzvBDhxBWQzHh6aLV', 'UQD8ucMJDu-VfMbemse1GaSefy8DUB18VxpvbnWiHQGlGMED')))

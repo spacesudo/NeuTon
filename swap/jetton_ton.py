@@ -5,7 +5,7 @@ from pytoniq import WalletV4R2, LiteBalancer
 import requests
 
 
-async def ton_swap(jetton_addr: str, mnemonics: list, amount: int):
+async def ton_swap(jetton_addr: str, mnemonics: list, amount: int,limit: int):
     try:
         config = requests.get("https://dton.io/ls/7034272819/C35ACD5CBE58507986E4BBA1B4E0B0D4CE1F77BEB411C7C1F520FA7589205554/global.config.json").json()
         provider = LiteBalancer.from_config(config=config, trust_level=2)
@@ -31,7 +31,7 @@ async def ton_swap(jetton_addr: str, mnemonics: list, amount: int):
             amount=swap_amount,
             response_address=wallet.address,
             forward_amount=int(0.25*1e9),
-            forward_payload=VaultJetton.create_swap_payload(pool_address=pool.address)
+            forward_payload=VaultJetton.create_swap_payload(pool_address=pool.address, limit=limit)
         )
 
         y = await wallet.transfer(destination=scale_wallet.address,
@@ -69,7 +69,7 @@ async def ton_swap(jetton_addr: str, mnemonics: list, amount: int):
             amount=swap_amount,
             response_address=wallet.address,
             forward_amount=int(0.25*1e9),
-            forward_payload=VaultJetton.create_swap_payload(pool_address=pool.address)
+            forward_payload=VaultJetton.create_swap_payload(pool_address=pool.address, limit=limit)
         )
 
         y = await wallet.transfer(destination=scale_wallet.address,

@@ -1,6 +1,6 @@
-from db import UserData
-db = UserData()
+from db import User
+db = User()
 
-db.update_referrals_vol(0.000, 7034272819)
+x = db.get_slippage(7034272819)
 
-print(db.get_users())
+print(x)

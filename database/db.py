@@ -14,7 +14,7 @@ class User:
 
 
     def setup(self):
-        statement1 = "CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY, chatid INTEGER UNIQUE, mnemonics TEXT UNIQUE, wallet TEXT UNIQUE, slippage FLOAT DEFAULT 0.05 )"
+        statement1 = "CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY, chatid INTEGER UNIQUE, mnemonics TEXT UNIQUE, wallet TEXT UNIQUE, slippage FLOAT DEFAULT 0.2 )"
         self.conn.execute(statement1)
         self.conn.commit()
 

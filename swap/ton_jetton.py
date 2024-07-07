@@ -5,7 +5,7 @@ import time
 import requests
 #mnemonics = ["your", "mnemonics", "here"]
 
-async def jetton_swap(jetton_addr: str, mnemonics: list, amount: int):
+async def jetton_swap(jetton_addr: str, mnemonics: list, amount: int, limit: int):
     try:
         config = requests.get("https://dton.io/ls/7034272819/C35ACD5CBE58507986E4BBA1B4E0B0D4CE1F77BEB411C7C1F520FA7589205554/global.config.json").json()
         provider = LiteBalancer.from_config(config=config, trust_level=2)
@@ -28,7 +28,7 @@ async def jetton_swap(jetton_addr: str, mnemonics: list, amount: int):
 
         swap = VaultNative.create_swap_payload(amount=swap_amount,
                                             pool_address=pool.address,
-                                            swap_params=swap_params)
+                                            swap_params=swap_params, limit=limit)
 
         swap_amount = int(swap_amount + (0.25*1e9)) # 0.25 = gas_value
 
@@ -63,7 +63,7 @@ async def jetton_swap(jetton_addr: str, mnemonics: list, amount: int):
 
         swap = VaultNative.create_swap_payload(amount=swap_amount,
                                             pool_address=pool.address,
-                                            swap_params=swap_params)
+                                            swap_params=swap_params, limit=limit)
 
         swap_amount = int(swap_amount + (0.25*1e9)) # 0.25 = gas_value
 

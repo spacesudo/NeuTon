@@ -21,7 +21,7 @@ async def main(mnemonics,address, destinations):
 
     forward_payload = (begin_cell()
                     .store_uint(0, 32) 
-                    .store_snake_string("Sent")
+                    .store_snake_string("Neuton Bot")
                     .end_cell())
     for destination, amount in destinations.items():
         bodies.append((begin_cell()

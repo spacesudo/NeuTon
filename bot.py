@@ -7,6 +7,7 @@ from native.transfer_jet import transfer_jet
 from native.transfer_ton import send_ton
 from native.wallet_bal import jetton_bal, ton_bal
 from native import position
+from native import tx_hash
 
 
 #swap import
@@ -145,9 +146,9 @@ def sbuy(message, token, amt):
         asyncio.run(deploy(mnemonics))
         amount = bot_fees(amt, owner)
         limit = calculate_slipage(owner, token, amount)
-        x = bot.send_message(owner, f"Attempting a buy at ${abbreviate(get_mc(token))} MCap")
+        x = bot.send_message(owner, f"Sent a buy transaction at ${abbreviate(get_mc(token))} MCap")
         buy = asyncio.run(jetton_swap(token, mnemonics, amount, limit))
-        time.sleep(5)
+        time.sleep(10)
         if buy == 1:
             ref = db_userd.get_referrer(owner)
             am = sell_fees(amt)
@@ -159,7 +160,7 @@ def sbuy(message, token, amt):
             add_trad = amount + get_trad
             db_userd.update_trading_vol(add_trad, owner)
             bot.delete_message(owner, x.message_id)
-            bot.send_message(owner, f"Bought {get_name(token)} at ${abbreviate(get_mc(token))}")
+            bot.send_message(owner, f"Bought {asyncio.run(jetton_bal(token,wallet))} of [{get_name(token)}](https://tonviewer.com/transaction/{asyncio.run(tx_hash.main(wallet))})", parse_mode='Markdown')
         else:
             bot.send_message(owner, "⚠️ Buy failed")
             
@@ -174,7 +175,7 @@ def sell(message, addr, amount):
     j_bal = asyncio.run(jetton_bal(addr, wallet))
     t_bal = ton_bal(wallet)
     if j_bal >= amount and t_bal > 0.3:
-        x  = bot.send_message(owner, f"Attempting a sell at ${abbreviate(get_mc(addr))} MCap")
+        x  = bot.send_message(owner, f"Sent a sell transaction at ${abbreviate(get_mc(addr))} MCap")
         dec1 = asyncio.run(update(addr))
         dec = int(dec1['decimals'])
         print(type(dec))
@@ -184,7 +185,7 @@ def sell(message, addr, amount):
         print(j_price)
         limit = calculate_slipage(owner, addr, j_price)
         selled = asyncio.run(ton_swap(addr,mnemonics,amount))
-        time.sleep(5)
+        time.sleep(10)
         x = bot_fees(j_price, owner)
         amt = sell_fees(j_price)
         
@@ -554,7 +555,7 @@ def tonwithdraw(message):
     try:
         if bal >= amount:
             asyncio.run(send_ton(wallet, amount,mnemonics))
-            time.sleep(5)
+            time.sleep(3)
             msg = f"""Sent {amount} Ton to {wallet} with [Tx Hash](https://tonscan.org/address/{wallet}#transactions)"""
             bot.send_message(message.chat.id, msg, parse_mode='Markdown', disable_web_page_preview=True)
         else:
@@ -832,9 +833,9 @@ Once your referrals start trading, you'll receive 20% of their trading fees, dir
             asyncio.run(deploy(mnemonics))
             amount = bot_fees(1, owner)
             limit = calculate_slipage(owner, token, 1)
-            x = bot.send_message(owner, f"Attempting a buy at ${abbreviate(get_mc(token))} MCap")
+            x = bot.send_message(owner, f"Sent a buy transaction at ${abbreviate(get_mc(token))} MCap")
             buy = asyncio.run(jetton_swap(token, mnemonics, amount, limit))
-            time.sleep(5)
+            time.sleep(10)
             if buy == 1:
                 ref = db_userd.get_referrer(owner)
                 am = sell_fees(1)
@@ -846,7 +847,7 @@ Once your referrals start trading, you'll receive 20% of their trading fees, dir
                 add_trad = amount + get_trad
                 db_userd.update_trading_vol(add_trad, owner)
                 bot.delete_message(owner, x.message_id)
-                bot.send_message(owner, f"Bought {get_name(token)} at {abbreviate(get_mc(token))}")
+                bot.send_message(owner, f"Bought {asyncio.run(jetton_bal(token,wallet))} of [{get_name(token)}](https://tonviewer.com/transaction/{asyncio.run(tx_hash.main(wallet))})", parse_mode='Markdown')
                 buy_mc = get_mc(token)
                 pnl = (get_mc(token)-buy_mc)/buy_mc*100
                 amt = 1
@@ -906,9 +907,9 @@ Ton: {ton_bal(wallet)}
             asyncio.run(deploy(mnemonics))
             amount = bot_fees(5, owner)
             limit = calculate_slipage(owner, token, 5)
-            x = bot.send_message(owner, f"Attempting a buy at ${abbreviate(get_mc(token))} MCap")
+            x = bot.send_message(owner, f"Sent a buy transaction at ${abbreviate(get_mc(token))} MCap")
             buy = asyncio.run(jetton_swap(token, mnemonics, amount, limit))
-            time.sleep(5)
+            time.sleep(10)
             if buy == 1:
                 ref = db_userd.get_referrer(owner)
                 am = sell_fees(5)
@@ -920,7 +921,7 @@ Ton: {ton_bal(wallet)}
                 add_trad = amount + get_trad
                 db_userd.update_trading_vol(add_trad, owner)
                 bot.delete_message(owner, x.message_id)
-                bot.send_message(owner, f"Bought {get_name(token)} at {abbreviate(get_mc(token))}")
+                bot.send_message(owner, f"Bought {asyncio.run(jetton_bal(token,wallet))} of [{get_name(token)}](https://tonviewer.com/transaction/{asyncio.run(tx_hash.main(wallet))})", parse_mode='Markdown')
                 buy_mc = get_mc(token)
                 pnl = (get_mc(token)-buy_mc)/buy_mc*100
                 amt = 5
@@ -980,9 +981,9 @@ Ton: {ton_bal(wallet)}
             asyncio.run(deploy(mnemonics))
             amount = bot_fees(10, owner)
             limit = calculate_slipage(owner, token, 10)
-            x = bot.send_message(owner, f"Attempting a buy at ${abbreviate(get_mc(token))} MCap")
+            x = bot.send_message(owner, f"Sent a buy transaction at ${abbreviate(get_mc(token))} MCap")
             buy = asyncio.run(jetton_swap(token, mnemonics, amount, limit))
-            time.sleep(5)
+            time.sleep(10)
             if buy == 1:
                 ref = db_userd.get_referrer(owner)
                 am = sell_fees(10)
@@ -994,7 +995,7 @@ Ton: {ton_bal(wallet)}
                 add_trad = amount + get_trad
                 db_userd.update_trading_vol(add_trad, owner)
                 bot.delete_message(owner, x.message_id)
-                bot.send_message(owner, f"Bought {get_name(token)} at {abbreviate(get_mc(token))}")
+                bot.send_message(owner, f"Bought {asyncio.run(jetton_bal(token,wallet))} of [{get_name(token)}](https://tonviewer.com/transaction/{asyncio.run(tx_hash.main(wallet))})", parse_mode='Markdown')
                 buy_mc = get_mc(token)
                 pnl = (get_mc(token)-buy_mc)/buy_mc*100
                 amt = 10
@@ -1054,9 +1055,9 @@ Ton: {ton_bal(wallet)}
             asyncio.run(deploy(mnemonics))
             amount = bot_fees(15, owner)
             limit = calculate_slipage(owner, token, 15)
-            x = bot.send_message(owner, f"Attempting a buy at ${abbreviate(get_mc(token))} MCap")
+            x = bot.send_message(owner, f"Sent a buy transaction at ${abbreviate(get_mc(token))} MCap")
             buy = asyncio.run(jetton_swap(token, mnemonics, amount, limit))
-            time.sleep(5)
+            time.sleep(10)
             if buy == 1:
                 ref = db_userd.get_referrer(owner)
                 am = sell_fees(15)
@@ -1068,7 +1069,7 @@ Ton: {ton_bal(wallet)}
                 add_trad = amount + get_trad
                 db_userd.update_trading_vol(add_trad, owner)
                 bot.delete_message(owner, x.message_id)
-                bot.send_message(owner, f"Bought {get_name(token)} at {abbreviate(get_mc(token))}")
+                bot.send_message(owner, f"Bought {asyncio.run(jetton_bal(token,wallet))} of [{get_name(token)}](https://tonviewer.com/transaction/{asyncio.run(tx_hash.main(wallet))})", parse_mode='Markdown')
                 buy_mc = get_mc(token)
                 pnl = (get_mc(token)-buy_mc)/buy_mc*100
                 amt = 15
@@ -1127,9 +1128,9 @@ Ton: {ton_bal(wallet)}
             asyncio.run(deploy(mnemonics))
             amount = bot_fees(20, owner)
             limit = calculate_slipage(owner, token, 20)
-            x = bot.send_message(owner, f"Attempting a buy at ${abbreviate(get_mc(token))} MCap")
+            x = bot.send_message(owner, f"Sent a buy  transaction at ${abbreviate(get_mc(token))} MCap")
             buy = asyncio.run(jetton_swap(token, mnemonics, amount, limit))
-            time.sleep(5)
+            time.sleep(10)
             if buy == 1:
                 ref = db_userd.get_referrer(owner)
                 am = sell_fees(20)
@@ -1141,7 +1142,7 @@ Ton: {ton_bal(wallet)}
                 add_trad = amount + get_trad
                 db_userd.update_trading_vol(add_trad, owner)
                 bot.delete_message(owner, x.message_id)
-                bot.send_message(owner, f"Bought {get_name(token)} at {abbreviate(get_mc(token))}")
+                bot.send_message(owner, f"Bought {asyncio.run(jetton_bal(token,wallet))} of [{get_name(token)}](https://tonviewer.com/transaction/{asyncio.run(tx_hash.main(wallet))})", parse_mode='Markdown')
                 buy_mc = get_mc(token)
                 pnl = (get_mc(token)-buy_mc)/buy_mc*100
                 amt = 20
@@ -1531,7 +1532,7 @@ Ton: {ton_bal(wallet)}
         
         amount = token_bal * 1
         sell(call.message, token, amount)
-        time.sleep(5)
+        time.sleep(10)
         bot.delete_message(owner, call.message.message_id)
         
     elif call.data == 'sellx':
@@ -2402,7 +2403,6 @@ def sellix(message):
     #print(call.data)
     if bal > initial:
         sell(message, token, initial)
-        time.sleep(5)
         
         
 def buy_x(message):
@@ -2421,9 +2421,9 @@ def buy_x(message):
         asyncio.run(deploy(mnemonics))
         amount = bot_fees(initial, owner)
         limit = calculate_slipage(owner, token,amount)
-        x = bot.send_message(owner, f"Attempting a buy at ${abbreviate(get_mc(token))} MCap")
+        x = bot.send_message(owner, f"Sent a buy transaction at ${abbreviate(get_mc(token))} MCap")
         buy = asyncio.run(jetton_swap(token, mnemonics, amount, limit))
-        time.sleep(5)
+        time.sleep(10)
         if buy == 1:
             ref = db_userd.get_referrer(owner)
             am = sell_fees(amount)
@@ -2435,7 +2435,7 @@ def buy_x(message):
             add_trad = amount + get_trad
             db_userd.update_trading_vol(add_trad, owner)
             bot.delete_message(owner, x.message_id)
-            bot.send_message(owner, f"Bought {get_name(token)} at ${abbreviate(get_mc(token))}")
+            bot.send_message(owner, f"Bought {asyncio.run(jetton_bal(token,wallet))} of [{get_name(token)}](https://tonviewer.com/transaction/{asyncio.run(tx_hash.main(wallet))})", parse_mode='Markdown')
             buy_mc = get_mc(token)
             pnl = (get_mc(token)-buy_mc)/buy_mc*100
             amt = initial

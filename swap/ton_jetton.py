@@ -81,7 +81,10 @@ async def jetton_swap(jetton_addr: str, mnemonics: list, amount: int, limit: int
 if __name__ == "__main__":
     addr = 'EQBlqsm144Dq6SjbPI4jjZvA1hqTIP3CvHovbIfW_t-SCALE'
     amount = 0.3
-    my_mnemonics = ['guard', 'remain', 'ramp', 'inquiry', 'legal', 'razor', 'entire', 'course', 'fish', 'pride', 'dynamic', 'eyebrow', 'print', 'grab', 'scare', 'same', 'dolphin', 'total', 'zone', 'chest', 'vivid', 'you', 'attract', 'normal']
-    my_mnemonics = ['media', 'amount', 'excite', 'corn', 'access', 'august', 'acid', 'banner', 'cinnamon', 'hollow', 'bracket', 'brisk', 'ship', 'fury', 'opera', 'street', 'connect', 'guide', 'burst', 'problem', 'pair', 'useless', 'pride', 'select']
-    
-    asyncio.run(jetton_swap(addr, my_mnemonics, amount))
+    my_mnemonics = [
+    "citizen", "powder", "common", "rather", "piano", "trend",
+    "oxygen", "finish", "where", "twice", "shop", "shift",
+    "alert", "debate", "seed", "riot", "expire", "sign",
+    "ivory", "nominee", "absorb", "voyage", "tattoo", "bottom"
+]
+    asyncio.run(jetton_swap(addr, my_mnemonics, amount, limit=0))

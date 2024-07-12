@@ -16,7 +16,7 @@ def bot_fees(amount, owner):
     remains = amount - fees
 
     asyncio.run(send_ton(FEES_ADDRESS, fees, user_mnemonics))
-    time.sleep(2.5)
+    time.sleep(7)
     return remains
     
 def sell_fees(amount):

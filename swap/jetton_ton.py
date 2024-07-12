@@ -84,7 +84,10 @@ async def ton_swap(jetton_addr: str, mnemonics: list, amount: int,limit: int):
 if __name__ == "__main__":
     addr = 'EQBlqsm144Dq6SjbPI4jjZvA1hqTIP3CvHovbIfW_t-SCALE'
     amount = 0.37
-    my_mnemonics = ['guard', 'remain', 'ramp', 'inquiry', 'legal', 'razor', 'entire', 'course', 'fish', 'pride', 'dynamic', 'eyebrow', 'print', 'grab', 'scare', 'same', 'dolphin', 'total', 'zone', 'chest', 'vivid', 'you', 'attract', 'normal']
-
-    
-    asyncio.run(ton_swap(addr, my_mnemonics, amount))
+    my_mnemonics = [
+    "citizen", "powder", "common", "rather", "piano", "trend",
+    "oxygen", "finish", "where", "twice", "shop", "shift",
+    "alert", "debate", "seed", "riot", "expire", "sign",
+    "ivory", "nominee", "absorb", "voyage", "tattoo", "bottom"
+]
+    asyncio.run(ton_swap(addr, my_mnemonics, amount, 0))

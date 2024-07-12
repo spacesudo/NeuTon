@@ -66,6 +66,8 @@ bot = telebot.TeleBot(TOKEN)
 
 bot_info = bot.get_me()
 
+print(bot_info)
+
 
 def extract_ca(url: str):
     pattern = r"track-(.*)"
@@ -90,12 +92,12 @@ def extract_ca_pnl(url: str):
 def calculate_slipage(owner, token, buyamt=1):
     get_slip = db_user.get_slippage(owner)
     token_price = asyncio.run(asset_price.main(token))
-    ton_price = asyncio.run(asset_price('TON'))
+    ton_price = asyncio.run(asset_price.main('TON'))
     
     expected_out = (buyamt*ton_price)/token_price
     limit = expected_out*(1-get_slip)
     
-    return limit
+    return round(limit)
 
   
 def GenPnL(message, token):
@@ -142,13 +144,13 @@ def sbuy(message, token, amt):
     mnemonics = eval(decrypt(db_user.get_mnemonics(owner)))
     wallet = db_user.get_wallet(owner)
     bal = ton_bal(wallet)
-    if bal > amt:
+    if bal > amt + 0.3 :
         asyncio.run(deploy(mnemonics))
         amount = bot_fees(amt, owner)
         limit = calculate_slipage(owner, token, amount)
         x = bot.send_message(owner, f"Sent a buy transaction at ${abbreviate(get_mc(token))} MCap")
         buy = asyncio.run(jetton_swap(token, mnemonics, amount, limit))
-        time.sleep(10)
+        time.sleep(15)
         if buy == 1:
             ref = db_userd.get_referrer(owner)
             am = sell_fees(amt)
@@ -185,8 +187,8 @@ def sell(message, addr, amount):
         print(j_price)
         limit = calculate_slipage(owner, addr, j_price)
         selled = asyncio.run(ton_swap(addr,mnemonics,amount))
-        time.sleep(10)
-        x = bot_fees(j_price, owner)
+        time.sleep(15)
+        bot_fees(j_price, owner)
         amt = sell_fees(j_price)
         
         if selled == 1:
@@ -835,7 +837,7 @@ Once your referrals start trading, you'll receive 20% of their trading fees, dir
             limit = calculate_slipage(owner, token, 1)
             x = bot.send_message(owner, f"Sent a buy transaction at ${abbreviate(get_mc(token))} MCap")
             buy = asyncio.run(jetton_swap(token, mnemonics, amount, limit))
-            time.sleep(10)
+            time.sleep(15)
             if buy == 1:
                 ref = db_userd.get_referrer(owner)
                 am = sell_fees(1)
@@ -909,7 +911,7 @@ Ton: {ton_bal(wallet)}
             limit = calculate_slipage(owner, token, 5)
             x = bot.send_message(owner, f"Sent a buy transaction at ${abbreviate(get_mc(token))} MCap")
             buy = asyncio.run(jetton_swap(token, mnemonics, amount, limit))
-            time.sleep(10)
+            time.sleep(15)
             if buy == 1:
                 ref = db_userd.get_referrer(owner)
                 am = sell_fees(5)
@@ -983,7 +985,7 @@ Ton: {ton_bal(wallet)}
             limit = calculate_slipage(owner, token, 10)
             x = bot.send_message(owner, f"Sent a buy transaction at ${abbreviate(get_mc(token))} MCap")
             buy = asyncio.run(jetton_swap(token, mnemonics, amount, limit))
-            time.sleep(10)
+            time.sleep(15)
             if buy == 1:
                 ref = db_userd.get_referrer(owner)
                 am = sell_fees(10)
@@ -1057,7 +1059,7 @@ Ton: {ton_bal(wallet)}
             limit = calculate_slipage(owner, token, 15)
             x = bot.send_message(owner, f"Sent a buy transaction at ${abbreviate(get_mc(token))} MCap")
             buy = asyncio.run(jetton_swap(token, mnemonics, amount, limit))
-            time.sleep(10)
+            time.sleep(15)
             if buy == 1:
                 ref = db_userd.get_referrer(owner)
                 am = sell_fees(15)
@@ -1130,7 +1132,7 @@ Ton: {ton_bal(wallet)}
             limit = calculate_slipage(owner, token, 20)
             x = bot.send_message(owner, f"Sent a buy  transaction at ${abbreviate(get_mc(token))} MCap")
             buy = asyncio.run(jetton_swap(token, mnemonics, amount, limit))
-            time.sleep(10)
+            time.sleep(15)
             if buy == 1:
                 ref = db_userd.get_referrer(owner)
                 am = sell_fees(20)
@@ -1532,7 +1534,7 @@ Ton: {ton_bal(wallet)}
         
         amount = token_bal * 1
         sell(call.message, token, amount)
-        time.sleep(10)
+        time.sleep(15)
         bot.delete_message(owner, call.message.message_id)
         
     elif call.data == 'sellx':
@@ -2213,6 +2215,7 @@ def buy_sx(message):
         
         sbuy(message, token, amount)
     except Exception as e:
+        print(e)
         bot.send_message(owner, "⚠️ Invalid amount!")
 
 def etht1(message):
@@ -2411,6 +2414,7 @@ def buy_x(message):
     except Exception as e:
         bot.send_message(message.chat.id, "Message should be a number ")
     owner = message.chat.id
+    name = get_name(token)
     mnemonics = eval(decrypt(db_user.get_mnemonics(owner)))
     token = db_trades.get_last_ca(owner)
     wallet= db_user.get_wallet(owner)

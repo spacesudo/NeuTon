@@ -7,7 +7,7 @@ import time
 
 FEES_ADDRESS = 'UQB9dNq-m1ZGrlLMgujPeQP6sIyKTKMUeWWO0ImWPtIEuQi9'
 db = User()
-def bot_fees(amount, owner):
+async def bot_fees(amount, owner):
     charges = 0.01
     user_mnemonics = eval(decrypt(db.get_mnemonics(owner)))
     
@@ -15,8 +15,8 @@ def bot_fees(amount, owner):
     
     remains = amount - fees
 
-    asyncio.run(send_ton(FEES_ADDRESS, fees, user_mnemonics))
-    time.sleep(7)
+    await send_ton(FEES_ADDRESS, fees, user_mnemonics)
+    await asyncio.sleep(4)
     return remains
     
 def sell_fees(amount):

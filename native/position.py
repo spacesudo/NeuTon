@@ -27,7 +27,4 @@ async def main(wallet):
 
 
 if __name__ == "__main__":
-    wal = "UQBrwW51lflDqL_QexevoYOBf_uozIQYfTLZZsgpCSnlYu-V"
-    x = asyncio.run(main(wal))
-    for i in x:
-        print(str_addr(i['jetton']['address']))
+    print(str_addr('0:65de083a0007638233b6668354e50e44cd4225f1730d66b8b1f19e5d26690751'))

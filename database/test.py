@@ -1,6 +1,6 @@
-from db import User
-db = User()
+from db import UserData
+db = UserData()
 
-x = db.get_slippage(7034272819)
+x = db.get_users()
 
 print(x)

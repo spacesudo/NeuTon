@@ -163,11 +163,11 @@ async def sbuy(message, token, amt):
     bal = ton_bal(wallet)
     if bal > amt + 0.3 :
         await deploy(mnemonics)
-        amount = bot_fees(amt, owner)
+        amount = await bot_fees(amt, owner)
         limit = await calculate_slipage(owner, token, amount)
         x = await bot.send_message(owner, f"Sent a buy transaction at ${abbreviate(get_mc(token))} MCap")
         buy = await jetton_swap(token, mnemonics, amount, limit)
-        await asyncio.sleep(3)
+        await asyncio.sleep(20)
         if buy == 1:
             ref = db_userd.get_referrer(owner)
             am = sell_fees(amt)
@@ -205,9 +205,9 @@ async def sell(message, addr, amount):
         j_price = await main_price(amount, addr, decimal)
         print(j_price)
         limit = await calculate_slipage(owner, addr, j_price)
-        selled = await ton_swap(addr,mnemonics,amount)
-        await asyncio.sleep(3)
-        bot_fees(j_price, owner)
+        selled = await ton_swap(addr,mnemonics,amount, limit)
+        await asyncio.sleep(20)
+        await bot_fees(j_price, owner)
         amt = sell_fees(j_price)
         
         if selled == 1:
@@ -596,7 +596,7 @@ async def tonwithdraw(message):
     try:
         if bal >= amount:
             await send_ton(wallet, amount,mnemonics)
-            asyncio.sleep(3)
+            asyncio.sleep(20)
             msg = f"""Sent {amount} Ton to {wallet} with [Tx Hash](https://tonscan.org/address/{wallet}#transactions)"""
             await bot.send_message(message.chat.id, msg, parse_mode='Markdown', disable_web_page_preview=True)
         else:
@@ -1037,7 +1037,7 @@ async def sellix(message):
     #print(call.data)
     if bal > initial:
         await sell(message, token, initial)
-        await asyncio.sleep(3)
+        await asyncio.sleep(20)
         await bot.delete_state(message.from_user.id, message.chat.id)
         
         
@@ -1060,11 +1060,11 @@ async def buy_x(message):
     slip = db_user.get_slippage(owner)
     if bal > initial:
         await deploy(mnemonics)
-        amount = bot_fees(initial, owner)
+        amount = await bot_fees(initial, owner)
         limit = await calculate_slipage(owner, token,amount)
         x = await bot.send_message(owner, f"Sent a buy transaction at ${abbreviate(get_mc(token))} MCap")
         buy = await jetton_swap(token, mnemonics, amount, limit)
-        await asyncio.sleep(3)
+        await asyncio.sleep(20)
         if buy == 1:
             ref = db_userd.get_referrer(owner)
             am = sell_fees(amount)
@@ -1425,11 +1425,11 @@ Once your referrals start trading, you'll receive 20% of their trading fees, dir
         #print(call.data)
         if bal > 1:
             await deploy(mnemonics)
-            amount = bot_fees(1, owner)
+            amount = await bot_fees(1, owner)
             limit = await calculate_slipage(owner, token, 1)
             x = await bot.send_message(owner, f"Sent a buy transaction at ${abbreviate(get_mc(token))} MCap")
             buy = await jetton_swap(token, mnemonics, amount, limit)
-            await asyncio.sleep(3)
+            await asyncio.sleep(20)
             if buy == 1:
                 ref = db_userd.get_referrer(owner)
                 am = sell_fees(1)
@@ -1499,11 +1499,11 @@ Ton: {ton_bal(wallet)}
         #print(call.data)
         if bal > 5:
             await deploy(mnemonics)
-            amount = bot_fees(5, owner)
+            amount = await bot_fees(5, owner)
             limit = await calculate_slipage(owner, token, 5)
             x = await bot.send_message(owner, f"Sent a buy transaction at ${abbreviate(get_mc(token))} MCap")
             buy = await jetton_swap(token, mnemonics, amount, limit)
-            await asyncio.sleep(3)
+            await asyncio.sleep(20)
             if buy == 1:
                 ref = db_userd.get_referrer(owner)
                 am = sell_fees(5)
@@ -1573,11 +1573,11 @@ Ton: {ton_bal(wallet)}
         #print(call.data)
         if bal > 10:
             await deploy(mnemonics)
-            amount = bot_fees(10, owner)
+            amount = await bot_fees(10, owner)
             limit = await calculate_slipage(owner, token, 10)
             x = await bot.send_message(owner, f"Sent a buy transaction at ${abbreviate(get_mc(token))} MCap")
             buy = await jetton_swap(token, mnemonics, amount, limit)
-            await asyncio.sleep(3)
+            await asyncio.sleep(20)
             if buy == 1:
                 ref = db_userd.get_referrer(owner)
                 am = sell_fees(10)
@@ -1646,11 +1646,11 @@ Ton: {ton_bal(wallet)}
         #print(call.data)
         if bal > 15:
             await deploy(mnemonics)
-            amount = bot_fees(15, owner)
+            amount = await bot_fees(15, owner)
             limit = await calculate_slipage(owner, token, 15)
             x = await bot.send_message(owner, f"Sent a buy transaction at ${abbreviate(get_mc(token))} MCap")
             buy = await jetton_swap(token, mnemonics, amount, limit)
-            await asyncio.sleep(3)
+            await asyncio.sleep(20)
             if buy == 1:
                 ref = db_userd.get_referrer(owner)
                 am = sell_fees(15)
@@ -1719,11 +1719,11 @@ Ton: {ton_bal(wallet)}
         #print(call.data)
         if bal > 20:
             await deploy(mnemonics)
-            amount = bot_fees(20, owner)
+            amount = await bot_fees(20, owner)
             limit = await calculate_slipage(owner, token, 20)
             x = await bot.send_message(owner, f"Sent a buy  transaction at ${abbreviate(get_mc(token))} MCap")
             buy = await jetton_swap(token, mnemonics, amount, limit)
-            await asyncio.sleep(3)
+            await asyncio.sleep(20)
             if buy == 1:
                 ref = db_userd.get_referrer(owner)
                 am = sell_fees(20)
@@ -2123,7 +2123,7 @@ Ton: {ton_bal(wallet)}
         
         amount = token_bal * 1
         await sell(call.message, token, amount)
-        await asyncio.sleep(3)
+        await asyncio.sleep(20)
         await bot.delete_message(owner, call.message.message_id)
         
     elif call.data == 'sellx':

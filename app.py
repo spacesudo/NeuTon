@@ -3,6 +3,7 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_login import UserMixin, LoginManager, login_user, logout_user, login_required
 from flask_bcrypt import Bcrypt
 import sqlite3
+from database.db import UserData
 
 app = Flask(__name__)
 login_manager = LoginManager(app)
@@ -30,12 +31,18 @@ def load_user(user_id):
 
 @app.route('/')
 def home():
-    return render_template('Home.html')
+    db = UserData()
+    users = db.get_users()
+    print(users)
+    return render_template('welcome.html', users=users)
 
 
 @app.route('/welcome')
 def welcome():
-    return render_template('welcome.html')
+    db = UserData()
+    users = db.get_users()
+    print(users)
+    return render_template('welcome.html', users=users)
 
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -85,4 +92,4 @@ def logout():
 if __name__ == "__main__":
     with app.app_context():
         db.create_all()
-    app.run(debug=True)
+    app.run()

@@ -8,6 +8,7 @@ from native.transfer_ton import send_ton
 from native.wallet_bal import jetton_bal, ton_bal
 from native import position
 from native import tx_hash
+from native import metadata
 
 
 #swap import
@@ -241,6 +242,8 @@ async def track(message, token):
     pool = get_pool(token)
     lp = get_lp(token)
     pair = get_pair(token)
+    mintable = await metadata.mint(token)
+    renounce = await metadata.owner(token)
     if token_bal > 0:
         buy_mc = 1 if db_trades.get_buy_mc(owner, token) == None else db_trades.get_buy_mc(owner,token)
         pnl = (get_mc(token)-buy_mc)/buy_mc*100
@@ -264,6 +267,10 @@ Ton: {ton_bal(wallet)}
  
 ♻️ * Liquidity*: {lp} TON 
  
+mintable: {"⚠️" if mintable == True else "✅️"}
+Renounced: {"✅️" if renounce == "EQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAM9c" else "❌️"}
+
+*Quick Insight*
 💡 *(24h) B {get_url(token)['pairs'][0]['txns']['h24']['buys']} | S {get_url(token)['pairs'][0]['txns']['h24']['sells']} | {get_url(token)['pairs'][0]['priceChange']['h24']}% | Vol: $ {abbreviate(get_url(token)['pairs'][0]['volume']['h24'])}* 
 
 📊 [Dexscreener]({chart})
@@ -1086,6 +1093,8 @@ async def buy_x(message):
             print(token)
             pool = get_pool(token)
             print(pool)
+            mintable = await metadata.mint(token)
+            renounce = await metadata.owner(token)
             name = get_name(token)
             symbol = get_symbol(token)
             pair = get_pair(token)
@@ -1107,6 +1116,10 @@ Ton: {ton_bal(wallet)}
  
 ♻️ * Liquidity*: {lp} TON 
  
+mintable: {"⚠️" if mintable == True else "✅️"}
+Renounced: {"✅️" if renounce == "EQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAM9c" else "❌️"}
+
+*Quick Insight*
 💡 *(24h) B {get_url(token)['pairs'][0]['txns']['h24']['buys']} | S {get_url(token)['pairs'][0]['txns']['h24']['sells']} | {get_url(token)['pairs'][0]['priceChange']['h24']}% | Vol: $ {abbreviate(get_url(token)['pairs'][0]['volume']['h24'])}* 
 
 📊 [Dexscreener]({chart})  
@@ -1229,7 +1242,9 @@ async def trade(message):
         markup.add(btn2,btn1,btn3)
         markup.add(btn11)
         markup.add(btn4,btn5,btn6,btn7,btn8,btn9,btn10)
-        
+        mintable = await metadata.mint(token)
+        renounce = await metadata.owner(token)
+        print(renounce)
         
         msg = f""" 
 💠 *{name}* (${symbol}): 🌐 {pool} 
@@ -1246,6 +1261,11 @@ Ton: {ton_bal(wallet)}
  
 ♻️ *Liquidity*: {lp} TON 
  
+mintable: {"⚠️" if mintable == True else "✅️"}
+
+Renounced: {"✅️" if renounce == "EQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAM9c" else "❌️"}
+
+*Quick Insight*
 💡 *(24h) B {get_url(token)['pairs'][0]['txns']['h24']['buys']} | S {get_url(token)['pairs'][0]['txns']['h24']['sells']} | {get_url(token)['pairs'][0]['priceChange']['h24']}% | Vol: $ {abbreviate(get_url(token)['pairs'][0]['volume']['h24'])}* 
  
         """
@@ -1274,6 +1294,8 @@ async def callback_handler(call):
     wallet = db_user.get_wallet(owner)
     mnemonics = eval(decrypt(db_user.get_mnemonics(owner)))
     slip = db_user.get_slippage(owner)
+    mintable = await metadata.mint(token)
+    renounce = await metadata.owner(token)
     
     if call.data == 'wallett':
         print("yessssssssss")
@@ -1465,6 +1487,10 @@ Ton: {ton_bal(wallet)}
  
 ♻️ * Liquidity*: {lp} TON 
  
+mintable: {"⚠️" if mintable == True else "✅️"}
+Renounced: {"✅️" if renounce == "EQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAM9c" else "❌️"}
+
+*Quick Insight*
 💡 *(24h) B {get_url(token)['pairs'][0]['txns']['h24']['buys']} | S {get_url(token)['pairs'][0]['txns']['h24']['sells']} | {get_url(token)['pairs'][0]['priceChange']['h24']}% | Vol: $ {abbreviate(get_url(token)['pairs'][0]['volume']['h24'])}* 
 
 📊 [Dexscreener]({chart})
@@ -1539,6 +1565,10 @@ Ton: {ton_bal(wallet)}
  
 ♻️ * Liquidity*: {lp} TON 
  
+mintable: {"⚠️" if mintable == True else "✅️"}
+Renounced: {"✅️" if renounce == "EQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAM9c" else "❌️"}
+
+*Quick Insight*
 💡 *(24h) B {get_url(token)['pairs'][0]['txns']['h24']['buys']} | S {get_url(token)['pairs'][0]['txns']['h24']['sells']} | {get_url(token)['pairs'][0]['priceChange']['h24']}% | Vol: $ {abbreviate(get_url(token)['pairs'][0]['volume']['h24'])}* 
 
 📊 [Dexscreener]({chart})  
@@ -1613,6 +1643,10 @@ Ton: {ton_bal(wallet)}
  
 ♻️ * Liquidity*: {lp} TON 
  
+mintable: {"⚠️" if mintable == True else "✅️"}
+Renounced: {"✅️" if renounce == "EQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAM9c" else "❌️"}
+
+*Quick Insight*
 💡 *(24h) B {get_url(token)['pairs'][0]['txns']['h24']['buys']} | S {get_url(token)['pairs'][0]['txns']['h24']['sells']} | {get_url(token)['pairs'][0]['priceChange']['h24']}% | Vol: $ {abbreviate(get_url(token)['pairs'][0]['volume']['h24'])}* 
 
 📊 [Dexscreener]({chart})   
@@ -1686,6 +1720,10 @@ Ton: {ton_bal(wallet)}
  
 ♻️ * Liquidity*: {lp} TON 
  
+mintable: {"⚠️" if mintable == True else "✅️"}
+Renounced: {"✅️" if renounce == "EQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAM9c" else "❌️"}
+
+*Quick Insight*
 💡 *(24h) B {get_url(token)['pairs'][0]['txns']['h24']['buys']} | S {get_url(token)['pairs'][0]['txns']['h24']['sells']} | {get_url(token)['pairs'][0]['priceChange']['h24']}% | Vol: $ {abbreviate(get_url(token)['pairs'][0]['volume']['h24'])}* 
 
 📊 [Dexscreener]({chart})  
@@ -1759,6 +1797,10 @@ Ton: {ton_bal(wallet)}
  
 ♻️ * Liquidity*: {lp} TON 
  
+mintable: {"⚠️" if mintable == True else "✅️"}
+Renounced: {"✅️" if renounce == "EQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAM9c" else "❌️"}
+
+*Quick Insight*
 💡 *(24h) B {get_url(token)['pairs'][0]['txns']['h24']['buys']} | S {get_url(token)['pairs'][0]['txns']['h24']['sells']} | {get_url(token)['pairs'][0]['priceChange']['h24']}% | Vol: $ {abbreviate(get_url(token)['pairs'][0]['volume']['h24'])}* 
 
 📊 [Dexscreener]({chart})   
@@ -1828,6 +1870,10 @@ Ton: {ton_bal(wallet)}
  
 ♻️ *Liquidity*: {lp} TON 
  
+mintable: {"⚠️" if mintable == True else "✅️"}
+Renounced: {"✅️" if renounce == "EQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAM9c" else "❌️"}
+
+*Quick Insight*
 💡 *(24h) B {get_url(token)['pairs'][0]['txns']['h24']['buys']} | S {get_url(token)['pairs'][0]['txns']['h24']['sells']} | {get_url(token)['pairs'][0]['priceChange']['h24']}% | Vol: $ {abbreviate(get_url(token)['pairs'][0]['volume']['h24'])}* 
  
         """
@@ -1872,6 +1918,10 @@ Ton: {ton_bal(wallet)}
  
 ♻️ *Liquidity*: {lp} TON 
  
+mintable: {"⚠️" if mintable == True else "✅️"}
+Renounced: {"✅️" if renounce == "EQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAM9c" else "❌️"}
+
+*Quick Insight*
 💡 *(24h) B {get_url(token)['pairs'][0]['txns']['h24']['buys']} | S {get_url(token)['pairs'][0]['txns']['h24']['sells']} | {get_url(token)['pairs'][0]['priceChange']['h24']}% | Vol: $ {abbreviate(get_url(token)['pairs'][0]['volume']['h24'])}* 
  
         """
@@ -1903,6 +1953,10 @@ Ton: {ton_bal(wallet)}
  
 ♻️ * Liquidity*: {lp} TON 
  
+mintable: {"⚠️" if mintable == True else "✅️"}
+Renounced: {"✅️" if renounce == "EQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAM9c" else "❌️"}
+
+*Quick Insight*
 💡 *(24h) B {get_url(token)['pairs'][0]['txns']['h24']['buys']} | S {get_url(token)['pairs'][0]['txns']['h24']['sells']} | {get_url(token)['pairs'][0]['priceChange']['h24']}% | Vol: $ {abbreviate(get_url(token)['pairs'][0]['volume']['h24'])}* 
 
 📊 [Dexscreener]({chart})  
@@ -1949,6 +2003,10 @@ Ton: {ton_bal(wallet)}
  
 ♻️ * Liquidity*: {lp} TON 
  
+mintable: {"⚠️" if mintable == True else "✅️"}
+Renounced: {"✅️" if renounce == "EQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAM9c" else "❌️"}
+
+*Quick Insight*
 💡 *(24h) B {get_url(token)['pairs'][0]['txns']['h24']['buys']} | S {get_url(token)['pairs'][0]['txns']['h24']['sells']} | {get_url(token)['pairs'][0]['priceChange']['h24']}% | Vol: $ {abbreviate(get_url(token)['pairs'][0]['volume']['h24'])}* 
 
 📊 [Dexscreener]({chart})
@@ -1998,6 +2056,10 @@ Ton: {ton_bal(wallet)}
  
 ♻️ * Liquidity*: {lp} TON 
  
+mintable: {"⚠️" if mintable == True else "✅️"}
+Renounced: {"✅️" if renounce == "EQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAM9c" else "❌️"}
+
+*Quick Insight*
 💡 *(24h) B {get_url(token)['pairs'][0]['txns']['h24']['buys']} | S {get_url(token)['pairs'][0]['txns']['h24']['sells']} | {get_url(token)['pairs'][0]['priceChange']['h24']}% | Vol: $ {abbreviate(get_url(token)['pairs'][0]['volume']['h24'])}* 
 
  📊 [Dexscreener]({chart})
@@ -2047,6 +2109,10 @@ Ton: {ton_bal(wallet)}
  
 ♻️ * Liquidity*: {lp} TON 
  
+mintable: {"⚠️" if mintable == True else "✅️"}
+Renounced: {"✅️" if renounce == "EQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAM9c" else "❌️"}
+
+*Quick Insight*
 💡 *(24h) B {get_url(token)['pairs'][0]['txns']['h24']['buys']} | S {get_url(token)['pairs'][0]['txns']['h24']['sells']} | {get_url(token)['pairs'][0]['priceChange']['h24']}% | Vol: $ {abbreviate(get_url(token)['pairs'][0]['volume']['h24'])}* 
 
 📊 [Dexscreener]({chart}) 
@@ -2096,6 +2162,11 @@ Ton: {ton_bal(wallet)}
  
 ♻️ * Liquidity*: {lp} TON 
  
+mintable: {"⚠️" if mintable == True else "✅️"}
+
+Renounced: {"✅️" if renounce == "EQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAM9c" else "❌️"}
+
+*Quick Insight*
 💡 *(24h) B {get_url(token)['pairs'][0]['txns']['h24']['buys']} | S {get_url(token)['pairs'][0]['txns']['h24']['sells']} | {get_url(token)['pairs'][0]['priceChange']['h24']}% | Vol: $ {abbreviate(get_url(token)['pairs'][0]['volume']['h24'])}* 
 
  📊 [Dexscreener]({chart})   

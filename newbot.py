@@ -1055,6 +1055,8 @@ async def buy_x(message):
         initial = float(message.text)
     except Exception as e:
         await bot.send_message(message.chat.id, "Message should be a number ")
+        await bot.delete_state(message.from_user.id, message.chat.id)
+        pass
     owner = message.chat.id
     bot_info = await bot_info_()
     token = db_trades.get_last_ca(owner)
@@ -1140,6 +1142,7 @@ Renounced: {"✅️" if renounce == "EQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
             markup.add(btn11, row_width=1)
             markup.add(btn2,btn3,btn4,btn5,btn6,btn14,btn7)
             await bot.send_message(message.chat.id, msg, parse_mode='Markdown', reply_markup=markup, disable_web_page_preview=True)
+            
             await bot.delete_state(message.from_user.id, message.chat.id)
             
         else:

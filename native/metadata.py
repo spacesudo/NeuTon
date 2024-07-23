@@ -25,7 +25,7 @@ async def mint(address: str):
 
 async def owner(address: str):
     try: 
-        config = requests.get("https://dton.io/ls/7034272819/C35ACD5CBE58507986E4BBA1B4E0B0D4CE1F77BEB411C7C1F520FA7589205554/global.config.json").json()
+        config = open("config.json", 'rb')
         client = LiteBalancer.from_config(config=config, trust_level=2)
 
         await client.start_up()

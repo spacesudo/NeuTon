@@ -104,6 +104,6 @@ def get_pairp(addr: str):
         return "failed to connect try again later"
     
     
-#print(get_pairp('EQDLBxmFug-g-c13i6Ur6ldoEbT7mT9ZtfoQNf7Alli-A19Q'))
+#print(get_lp('0x8b1869f79b9abF52001314A2E6990A96F039058D'))
 
 #print(get_url("EQBlqsm144Dq6SjbPI4jjZvA1hqTIP3CvHovbIfW_t-SCALE")['pairs'][0]['txns']['h24']['buys'])

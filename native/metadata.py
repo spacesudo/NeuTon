@@ -7,7 +7,9 @@ from pytonapi import AsyncTonapi
 import asyncio
 from dotenv import load_dotenv
 import os
-from pytoniq_core import Address
+from pytoniq_core import Address, Cell
+import json
+
 
 load_dotenv()
 
@@ -25,13 +27,18 @@ async def mint(address: str):
 
 async def owner(address: str):
     try: 
-        config = open("config.json", 'rb')
-        client = LiteBalancer.from_config(config=config, trust_level=2)
+        with open('config.json','r') as f:
+            config = json.load(f.read())
+        
+        
+        client = LiteBalancer.from_config(config, trust_level=2)
 
         await client.start_up()
         
         result = await client.run_get_method(address, method="get_jetton_data", stack=[])
         
+        mt = Cell.begin_parse(result[3])
+        print(mt)
         p = result[2].load_address()
         
         
@@ -42,5 +49,5 @@ async def owner(address: str):
         return ""
     
 if __name__ == "__main__":   
-    x = asyncio.run(mint("EQDxnpzUaBsI9cvGPjuxRM3rHGTHDp92vGTKxPodiomXdtAa"))
+    x = asyncio.run(owner("EQDxnpzUaBsI9cvGPjuxRM3rHGTHDp92vGTKxPodiomXdtAa"))
     print(x)

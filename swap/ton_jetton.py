@@ -2,13 +2,13 @@ from dedust import Asset, Factory, PoolType, SwapParams, VaultNative
 from pytoniq import WalletV4R2, LiteBalancer
 import asyncio
 import time
-import requests
-#mnemonics = ["your", "mnemonics", "here"]
+import json
 
 async def jetton_swap(jetton_addr: str, mnemonics: list, amount: int, limit: int):
     try:
         
-        config = open("config.json", 'rb')
+        with open('config.json','r') as f:
+            config = json.load(f.read())
         
         provider = LiteBalancer.from_config(config=config, trust_level=2)
         await provider.start_up()
@@ -33,7 +33,7 @@ async def jetton_swap(jetton_addr: str, mnemonics: list, amount: int, limit: int
                                             swap_params=swap_params, limit=limit)
 
         swap_amount = int(swap_amount + (0.25*1e9)) # 0.25 = gas_value
-
+        print(swap.serialize().hash.hex())
         y = await wallet.transfer(destination="EQDa4VOnTYlLvDJ0gZjNYm5PXfSmmtL6Vs6A_CZEtXCNICq_", # native vault
                             amount=swap_amount,
                             body=swap)

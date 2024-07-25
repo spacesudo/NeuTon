@@ -2,12 +2,13 @@ from dedust import Asset, Factory, PoolType, JettonRoot, VaultJetton
 import asyncio
 from pytoniq import WalletV4R2, LiteBalancer
 #clfrom ..native import mnemonics
-import requests
+import json
 
 
 async def ton_swap(jetton_addr: str, mnemonics: list, amount: int,limit: int):
     try:
-        config = open("config.json", 'rb')
+        with open('config.json','r') as f:
+            config = json.load(f.read())
         provider = LiteBalancer.from_config(config=config, trust_level=2)
         
         await provider.start_up()
@@ -38,7 +39,6 @@ async def ton_swap(jetton_addr: str, mnemonics: list, amount: int,limit: int):
                             amount=int(0.3*1e9),
                             body=swap)
         
-
         await provider.close_all()
         
         return y.__hash__()

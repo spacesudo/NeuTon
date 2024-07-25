@@ -2,10 +2,12 @@ from dedust import Asset, Factory, PoolType
 from pytoniq import LiteBalancer
 import asyncio
 import requests
+import json
 
 async def main_price(amount, address, decimal):
     try:    
-        config = open("config.json", 'rb')
+        with open('config.json','r') as f:
+            config = json.load(f.read())
         provider = LiteBalancer.from_config(config=config, trust_level=2)
         
         await provider.start_up()

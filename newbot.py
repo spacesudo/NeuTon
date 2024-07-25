@@ -604,7 +604,7 @@ async def tonwithdraw(message):
         if bal >= amount:
             await send_ton(wallet, amount,mnemonics)
             asyncio.sleep(20)
-            msg = f"""Sent {amount} Ton to {wallet} with [Tx Hash](https://tonscan.org/address/{wallet}#transactions)"""
+            msg = f"""Successfully Sent {amount} Ton to {wallet} """
             await bot.send_message(message.chat.id, msg, parse_mode='Markdown', disable_web_page_preview=True)
         else:
             await bot.send_message(message.chat.id, "⚠️ Amount higher than Wallet Balance")

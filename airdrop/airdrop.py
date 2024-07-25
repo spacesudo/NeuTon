@@ -1,12 +1,14 @@
 from pytoniq import LiteBalancer, WalletV4R2, begin_cell, HighloadWallet
 import asyncio
 import requests
+import json
 
 mnemonics = ["media", "amount", "excite", "corn", "access", "august", "acid", "banner", "cinnamon", "hollow", "bracket", "brisk", "ship", "fury", "opera", "street", "connect", "guide", "burst", "problem", "pair", "useless", "pride", "select"]
 
 async def main(mnemonics,address, destinations):
     try:
-        config = open("config.json", 'rb')
+        with open('config.json','r') as f:
+            config = json.load(f.read())
         provider = LiteBalancer.from_config(config=config, trust_level=2)
         await provider.start_up()
 

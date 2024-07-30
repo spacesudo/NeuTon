@@ -38,7 +38,6 @@ async def owner(address: str):
         result = await client.run_get_method(address, method="get_jetton_data", stack=[])
         
         mt = Cell.begin_parse(result[3])
-        print(mt)
         p = result[2].load_address()
         
         

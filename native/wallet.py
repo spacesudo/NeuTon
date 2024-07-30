@@ -5,7 +5,7 @@ import json
 
 async def import_wallet(mnemonics):
     with open('config.json','r') as f:
-        config = json.load(f.read())
+        config = json.load(f)
     provider = LiteBalancer.from_config(config=config, trust_level=2)
     
     provider.start_up()

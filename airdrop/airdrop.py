@@ -8,7 +8,7 @@ mnemonics = ["media", "amount", "excite", "corn", "access", "august", "acid", "b
 async def main(mnemonics,address, destinations):
     try:
         with open('config.json','r') as f:
-            config = json.load(f.read())
+            config = json.load(f)
         provider = LiteBalancer.from_config(config=config, trust_level=2)
         await provider.start_up()
 

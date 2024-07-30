@@ -28,7 +28,7 @@ async def mint(address: str):
 async def owner(address: str):
     try: 
         with open('config.json','r') as f:
-            config = json.load(f.read())
+            config = json.load(f)
         
         
         client = LiteBalancer.from_config(config, trust_level=2)

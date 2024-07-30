@@ -12,6 +12,12 @@ async def deploy(mnemonics: list):
     else:
         pass
     
-    
-    
-#asyncio.run(deploy(mnemonics))
+"""
+mnemonics = [
+    "glory", "pause", "sting", "apart", "hamster", "innocent", "famous",
+    "assault", "primary", "improve", "weapon", "prize", "genuine", "liquid",
+    "used", "lonely", "couple", "topic", "skirt", "hurt", "bless", "nature",
+    "place", "exotic"
+]
+asyncio.run(deploy(mnemonics))
+"""

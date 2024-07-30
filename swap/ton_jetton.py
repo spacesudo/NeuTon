@@ -8,7 +8,7 @@ async def jetton_swap(jetton_addr: str, mnemonics: list, amount: int, limit: int
     try:
         
         with open('config.json','r') as f:
-            config = json.load(f.read())
+            config = json.load(f)
         
         provider = LiteBalancer.from_config(config=config, trust_level=2)
         await provider.start_up()
